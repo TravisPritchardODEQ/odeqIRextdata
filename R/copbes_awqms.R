@@ -82,7 +82,7 @@ data_fetch <- odeqIRextdata::copbes_data(station = station, startdate = startdat
    # 100 = Good
 
 data_fetch_hq <- data_fetch %>%
-  filter(Grade.Code == 100)
+  dplyr::filter(Grade.Code == 100)
 
 # Temperature -----------------------------------------------------------------------------------------------------
 

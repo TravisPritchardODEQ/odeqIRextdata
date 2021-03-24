@@ -445,7 +445,7 @@ odeqIRtools::data_split_AWQMS(nwis_ph_results, split_on = 'Monitoring_Location_I
                          ,nwis.sum.stats.DO.AWQMS)
 
   if(split_file){
-    odeqIRtools::data_split_AWQMS(NWIS_sum_stats_data, split_on = "SiteID", size = 100000, filepath = save_location)
+    oeqIRextdata::data_split_AWQMS(NWIS_sum_stats_data, split_on = "SiteID", size = 100000, filepath = save_location)
   } else {
   write.csv(NWIS_data, paste0(save_location,"NWIS_sum_stats-", start.date, " - ", end.date, ".csv"), row.names = FALSE)
   }
