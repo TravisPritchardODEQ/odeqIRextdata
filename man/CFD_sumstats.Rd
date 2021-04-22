@@ -4,12 +4,17 @@
 \alias{CFD_sumstats}
 \title{CFD_sumstats}
 \usage{
-CFD_sumstats(project)
+CFD_sumstats(project, type = "file", path = NULL)
 }
 \arguments{
 \item{project}{Name of project to include}
+
+\item{type}{How to select files. "file" lets you specify path in function arguments, 'file_select' brings up a chooser window, "directory" will loop through all files in a directory.}
+
+\item{path}{filepath for file to process, if type == "path"}
 }
 \description{
-Calculates summary statistics from CFD continuous data templates, and creates AWQMS import files. Running function
-will bring up a file selctor. Summary stats file will be saved at the same location.
+Calculates summary statistics from CFD continuous data templates, and creates AWQMS import files.  "file" lets you
+specify path in function arguments, 'file_select' brings up a chooser window, "directory" will loop through all files
+in a directory. Summary stats file will be saved at the same location ans input file.
 }

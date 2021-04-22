@@ -24,7 +24,7 @@
 copbes_data <- function(station, startdate, enddate, char) {
 
   # Testing
-  # station=c("92B", "VNB")
+  # station=c("92B", "VNB","P1936")
   # startdate="2019-04-01"
   # enddate="2019-12-31"
   # char=c("Temperature.Primary", "Dissolved oxygen.Field Visits")
@@ -67,7 +67,7 @@ copbes_data <- function(station, startdate, enddate, char) {
                         col_types=readr::cols("T","d","d","d", "d", "c", "c"),
                         skip=1)
     names(df) <- c("datetime", "Result.Value", "Grade.Code", "Approval.Level", "Interpolation.Type", "Event.Timestamp", "Comment")
-    df$Monitorining.Location.ID <- x$station
+    df$Monitoring_Location_ID <- x$station
     df$Characteristic.Name <- x$char
     df$Result.Unit <- x$unit
     return(df)
@@ -82,7 +82,7 @@ copbes_data <- function(station, startdate, enddate, char) {
   # Bind list into single data frame and reorder cols
   df2 <- df1 %>%
     dplyr::bind_rows() %>%
-    dplyr::select(Monitorining.Location.ID, datetime, Event.Timestamp,
+    dplyr::select(Monitoring_Location_ID, datetime, Event.Timestamp,
                   Characteristic.Name, Result.Unit, Result.Value,
                   Interpolation.Type, Grade.Code, Approval.Level, Comment)
 

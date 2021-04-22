@@ -11,6 +11,8 @@
 #' @param project Name of project to include
 #' @param type How to select files. "file" lets you specify path in function arguments, 'file_select' brings up a chooser window, "directory" will loop through all files in a directory.
 #' @param path filepath for file to process, if type == "path"
+#' @import dplyr
+#' @importFrom runner runner
 #' @export
 
 
@@ -85,7 +87,7 @@ results_data <- Results_import %>%
          r_units = ifelse(Result.Unit == "deg F", "deg C", Result.Unit )) %>%
   filter(Result.Status.ID != "Rejected") %>%
   mutate(time_char = strftime(Activity.Start.Time, format = "%H:%M:%S", tz = 'UTC'),
-         datetime = ymd_hms(paste(as.Date(Activity.Start.Date), time_char)),
+         datetime = lubridate::ymd_hms(paste(as.Date(Activity.Start.Date), time_char)),
          Activity.Start.Date = as.Date(Activity.Start.Date))
 
 
@@ -93,7 +95,7 @@ results_data <- Results_import %>%
 
 deployments <- Results_import %>%
   mutate(time_char = strftime(Activity.Start.Time, format = "%H:%M:%S", tz = 'UTC'),
-         datetime = ymd_hms(paste(as.Date(Activity.Start.Date), time_char))) %>%
+         datetime = lubridate::ymd_hms(paste(as.Date(Activity.Start.Date), time_char))) %>%
   group_by(Monitoring.Location.ID, Equipment.ID.., ) %>%
   summarise(startdate = min(datetime),
             enddate = max(datetime) + minutes(5),
@@ -535,7 +537,7 @@ ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot = graph)
              r_units = ifelse(Result.Unit == "deg F", "deg C", Result.Unit )) %>%
       filter(Result.Status.ID != "Rejected") %>%
       mutate(time_char = strftime(Activity.Start.Time, format = "%H:%M:%S", tz = 'UTC'),
-             datetime = ymd_hms(paste(as.Date(Activity.Start.Date), time_char)),
+             datetime = lubridate::ymd_hms(paste(as.Date(Activity.Start.Date), time_char)),
              Activity.Start.Date = as.Date(Activity.Start.Date))
 
 
@@ -543,7 +545,7 @@ ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot = graph)
 
     deployments <- Results_import %>%
       mutate(time_char = strftime(Activity.Start.Time, format = "%H:%M:%S", tz = 'UTC'),
-             datetime = ymd_hms(paste(as.Date(Activity.Start.Date), time_char))) %>%
+             datetime = lubridate::ymd_hms(paste(as.Date(Activity.Start.Date), time_char))) %>%
       group_by(Monitoring.Location.ID, Equipment.ID.., ) %>%
       summarise(startdate = min(datetime),
                 enddate = max(datetime) + minutes(5),
