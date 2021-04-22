@@ -5,17 +5,11 @@
 \title{Retrieve surface water monitoring results from The City of Portland Bureau of Environmental Services and creates and
 saves AWQMS import files}
 \usage{
-copbes_AWQMS(
-  station,
-  startdate = "2016-01-01",
-  enddate = "2020-12-31",
-  char = c("Dissolved oxygen.Primary", "Dissolved oxygen saturation.Primary",
-    "pH.Primary", "Temperature.7DADM"),
-  project,
-  save_location = "Data_Sources/copbes/"
-)
+copbes_AWQMS(data_inventory, project)
 }
 \arguments{
+\item{project}{project name for AWQMS}
+
 \item{station}{Required string vector of station location IDs to be fetched.}
 
 \item{startdate}{Required string setting the start date of the data being fetched. Format 'yyyy-mm-dd'.}
@@ -36,8 +30,6 @@ copbes_AWQMS(
 \item 'Temperature.Primary' - Continuous Water temperature (deg C)
 \item 'Temperature.7DADM' - 7-Day mean daily maximum water temperature (deg C)
 }}
-
-\item{project}{project name for AWQMS}
 
 \item{save_location}{location to save files to. Should end with/}
 }
