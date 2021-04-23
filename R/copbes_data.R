@@ -35,7 +35,7 @@ copbes_data <- function(station, startdate, enddate, char) {
                       'Dissolved oxygen saturation.Field Visits', 'Dissolved oxygen saturation.Primary',
                       'pH.Field Visits', 'pH.Primary',
                       'Specific conductance.Field Visits', 'Specific conductance.Primary',
-                      'Temperature.Field Visits', 'Temperature.Primary', 'Temperature.7DADM'))) {
+                      'Temperature.Field Visits', 'Temperature.Primary', 'Temperature.7DADM', "Temperature.Monthly Max" ))) {
     stop("non valid value in 'char'")
   }
 

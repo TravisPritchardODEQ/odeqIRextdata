@@ -5,25 +5,14 @@
 #' Data is retrieved from City of Portland Bureau of Environmental Services database.
 #' https://aquarius.portlandoregon.gov/ using the copbes_data function
 #'
-#' @param station Required string vector of station location IDs to be fetched.
-#' @param startdate Required string setting the start date of the data being fetched. Format 'yyyy-mm-dd'.
-#' @param enddate Required string setting the end date of the data being fetched. Format 'yyyy-mm-dd'.
-#' @param char Required string vector identifying the characteristics to be fetched. Options include:
-#'   * 'Dissolved oxygen.Field Visits' - Dissolved oxygen concentration grab measurements (mg/l)
-#'   * 'Dissolved oxygen.Primary' - Continuous dissolved oxygen concentration (mg/l)
-#'   * 'Dissolved oxygen saturation.Field Visits' (%)
-#'   * 'Dissolved oxygen saturation.Primary' (%)
-#'   * 'pH.Field Visits' - pH grab measurements (pH)
-#'   * 'pH.Primary' - Continuous pH (pH)
-#'   * 'Specific conductance.Field Visits' - Specific conductance grab measurements (uS/cm)
-#'   * 'Specific conductance.Primary' - Continuous Specific conductance (uS/cm)
-#'   * 'Temperature.Field Visits' - Water temperature grab measurements (deg C)
-#'   * 'Temperature.Primary' - Continuous Water temperature (deg C)
-#'   * 'Temperature.7DADM' - 7-Day mean daily maximum water temperature (deg C)
+#' @param data_inventory Required datafarme of available data. Columns should match augments of the copbes_data function:
+#'   * 'station'
+#'   * 'startdate'
+#'   * 'enddate'
+#'   * 'char'
 #' @param project project name for AWQMS
-#' @param save_location location to save files to. Should end with/
 #' @export
-#' @return nothing
+#' @return list of deployments, sumstats, and raw pH continuous data
 
 
 
@@ -39,12 +28,8 @@ copbes_AWQMS <- function(data_inventory,
   # BES_inventory_import <- read.csv("C:/Users/tpritch/Documents/odeqIRextdata/PortlandBes_data_inventory.csv")
   #
   #
-  # BES_inventory <- BES_inventory_import %>%
-  #   transmute(station = LocationIdentifier,
-  #             startdate = '2016-01-01',
-  #             enddate = '2020-12-31',
-  #             char = gsub("@.*$","",Identifier))
-  #
+# data_inventory <- BES_inventory
+#   #
 # project = "call for data 2022"
 
 
@@ -61,7 +46,7 @@ copbes_AWQMS <- function(data_inventory,
 
 
 
-data_fetch <- pmap_dfr(head(BES_inventory, 12), copbes_data)
+data_fetch <- pmap_dfr(data_inventory, copbes_data)
 
 #Filter out lower quality data
  # grade codes
@@ -115,6 +100,8 @@ data_fetch_hq <- data_fetch_hq %>%
   dplyr::left_join(select(deployments, Monitoring_Location_ID, Equipment_ID))
 # Temperature -----------------------------------------------------------------------------------------------------
 
+
+
 if(nrow(dplyr::filter(data_fetch_hq, Characteristic.Name == 'Temperature.7DADM')) > 0 ){
 
 
@@ -153,6 +140,212 @@ data_fetch_temp <- data_fetch_hq %>%
                    AnaEndTimeZone = lubridate::tz(datetime),
                    ActivityID = NA
   )
+
+
+
+}
+
+# raw Temp --------------------------------------------------------------------------------------------------------
+#If no 7DADM value exists, calculate
+
+#Stations with no 7DADM values
+temp_raw_stations <- data_inventory %>%
+  group_by(station) %>%
+  summarise(temp_in_group =any(grepl("Temperature", char)),
+            dadm7_in_group = any(stringr::str_detect(char, 'Temperature.7DADM'))) %>%
+  filter(temp_in_group == TRUE & dadm7_in_group == FALSE) %>%
+  pull(station)
+
+
+
+
+
+if(nrow(dplyr::filter(data_fetch_hq, Monitoring_Location_ID %in% temp_raw_stations)) > 0){
+
+  data_fetch_raw_temp <-   data_fetch_hq %>%
+    dplyr::filter( Monitoring_Location_ID %in% temp_raw_stations,
+                   Characteristic.Name == 'Temperature.Primary') %>%
+    dplyr::mutate(hr =  format(datetime, "%Y-%j-%H"))
+
+  #Simplify to hourly values and Stats
+  hrsum <- data_fetch_raw_temp %>%
+    dplyr::group_by(Monitoring_Location_ID, Equipment_ID, hr, Result.Unit) %>%
+    dplyr::summarise(date = as.Date(dplyr::first(datetime)),
+                     hrDTmin = min(datetime),
+                     hrDTmax = max(datetime),
+                     hrN = sum(!is.na(Result.Value)),
+                     hrMean = mean(Result.Value, na.rm=TRUE),
+                     hrMin = min(Result.Value, na.rm=TRUE),
+                     hrMax = max(Result.Value, na.rm=TRUE))
+
+
+
+  # For each date, how many hours have hrN > 0
+  # remove rows with zero records in an hour.
+  hrdat<- hrsum[which(hrsum$hrN >0),]
+
+  # Summarise to daily statistics
+  daydat <- hrdat %>%
+    dplyr::group_by(Monitoring_Location_ID, Equipment_ID, date) %>%
+    dplyr::summarise(dDTmin = min(hrDTmin),
+                     dDTmax = max(hrDTmax),
+                     hrNday = length(hrN),
+                     dyN = sum(hrN),
+                     dyMean = mean(hrMean, na.rm=TRUE),
+                     dyMin = min(hrMin, na.rm=TRUE),
+                     dyMax = max(hrMax, na.rm=TRUE))
+
+  daydat <- daydat %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(ResultStatusID = ifelse(hrNday >= 22, 'Final', "Rejected")) %>%
+    dplyr::mutate(cmnt =ifelse(hrNday >= 22, "Generated by ORDEQ", ifelse(hrNday <= 22 & hrNday >= 20,
+                                                                          paste0("Generated by ORDEQ; Estimated - ", as.character(hrNday), ' hrs with valid data in day' ),
+                                                                          paste0("Generated by ORDEQ; Rejected - ", as.character(hrNday), ' hrs with valid data in day' )) ))
+
+
+  #Filter dataset to only look at 1 monitoring location at a time
+  daydat_station <- daydat %>%
+    dplyr::filter(hrNday >= 22) %>%
+    dplyr::filter(ResultStatusID != "Rejected")
+
+
+  daydat_station2 <- daydat_station %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(Equipment_ID) %>%
+    dplyr::mutate(row = dplyr::row_number(),
+                  d = runner(x = data.frame(dyMax_run = dyMax, dDTmin_run = dDTmin,
+                                            dDTmax_run = dDTmax),
+                             k = "7 days",
+                             lag = 0,
+                             idx = date,
+                             f = function(x) list(x))) %>%
+    dplyr::mutate(d = purrr::map(d, ~ .x %>%
+                                   dplyr::summarise(ma.max7 = dplyr::case_when(length(dyMax_run) >= 6 ~  mean(dyMax_run),
+                                                                               TRUE ~ NA_real_),
+                                                    ana_startdate7 = min(dDTmin_run),
+                                                    ana_enddate7   = max(dDTmax_run),
+                                                    act_enddate7   = max(dDTmax_run))
+
+    ))%>%
+    tidyr::unnest_wider(d) %>%
+    dplyr::mutate(ma.max7 = ifelse(row < 7, NA, ma.max7)) %>%
+    dplyr::select(-row)
+
+
+
+  # Combine list to single dataframe
+  sum_stats_temp <- daydat_station2 %>%
+    dplyr::arrange(Monitoring_Location_ID, Equipment_ID, date)
+
+  #add any missing columns
+  sumstat_long_cols <- c("ana_startdate7", "ana_startdate30", "ana_enddate7", "ana_enddate30",
+                         "ma.max7", 'ma.min7', 'ma.mean7', 'ma.mean30')
+
+  missing_cols <- setdiff(sumstat_long_cols, names(sum_stats_temp))
+
+  sum_stats_temp[missing_cols] <- NA
+
+
+  #Gather summary statistics from wide format into long format
+  #rename summary statistcs to match AWQMS Import COnfiguration
+  sumstat_long <- sum_stats_temp %>%
+    dplyr::rename("Daily Maximum" = dyMax,
+                  "Daily Minimum" = dyMin,
+                  "Daily Mean"    = dyMean,
+                  "7DMADMin"      = ma.min7,
+                  "7DMADMean"     = ma.mean7,
+                  "7DMADMax"      = ma.max7,
+                  "30DMADMean"    = ma.mean30) %>%
+    tidyr::gather(
+      "Daily Maximum",
+      "Daily Minimum",
+      "Daily Mean",
+      "7DMADMin",
+      "7DMADMean",
+      "7DMADMax",
+      "30DMADMean",
+      key = "StatisticalBasis",
+      value = "Result",
+      na.rm = TRUE
+    ) %>%
+    dplyr::arrange(Monitoring_Location_ID, date)
+
+  #   left_join(Audits_unique, by = c("Monitoring.Location.ID", "charID" = "Characteristic.Name") )
+  Temp_AWQMS <- sumstat_long %>%
+    ungroup() %>%
+    dplyr::mutate(charID = "Temperature, water",
+                  RsltTimeBasis = ifelse(StatisticalBasis == "7DMADMin" |
+                                           StatisticalBasis == "7DMADMean" |
+                                           StatisticalBasis == "7DMADMax", "7 Day",
+                                         ifelse(StatisticalBasis == "30DMADMean", "30 Day", "1 Day" )),
+                  ActivityType = "FMC",
+                  Result.Analytical.Method.ID = "THM01",
+                  SmplColMthd = "ContinuousPrb",
+                  SmplColEquip = "Probe/Sensor",
+                  SmplDepth = "",
+                  SmplDepthUnit = "",
+                  SmplColEquipComment = "",
+                  Samplers = "",
+                  Project = project,
+                  AnaStartDate = case_when(RsltTimeBasis == "1 Day" ~ format(dDTmin, format="%Y-%m-%d"),
+                                           RsltTimeBasis == "7 Day" ~ format(ana_startdate7, format="%Y-%m-%d"),
+                                           RsltTimeBasis == "30 Day" ~ format(ana_startdate30, format="%Y-%m-%d")),
+                  AnaStartTime = case_when(RsltTimeBasis == "1 Day" ~ format(dDTmin, format="%H:%M:%S"),
+                                           RsltTimeBasis == "7 Day" ~ format(ana_startdate7, format="%H:%M:%S"),
+                                           RsltTimeBasis == "30 Day" ~ format(ana_startdate30, format="%H:%M:%S")),
+                  AnaEndDate = case_when(RsltTimeBasis == "1 Day" ~ format(dDTmax, format="%Y-%m-%d"),
+                                         RsltTimeBasis == "7 Day" ~ format(ana_enddate7, format="%Y-%m-%d"),
+                                         RsltTimeBasis == "30 Day" ~ format(ana_enddate30, format="%Y-%m-%d")),
+                  AnaEndTime = case_when(RsltTimeBasis == "1 Day" ~ format(dDTmax, format="%H:%M:%S"),
+                                         RsltTimeBasis == "7 Day" ~ format(ana_enddate7, format="%H:%M:%S"),
+                                         RsltTimeBasis == "30 Day" ~ format(ana_enddate30, format="%H:%M:%S")),
+                  ActStartDate = format(date, format="%Y-%m-%d"),
+                  ActStartTime = "0:00",
+                  ActEndDate = AnaEndDate,
+                  ActEndTime = AnaEndTime,
+                  RsltType = "Calculated",
+                  ActStartTimeZone = lubridate::tz(date),
+                  ActEndTimeZone = lubridate::tz(date),
+                  AnaStartTimeZone = lubridate::tz(date),
+                  AnaEndTimeZone = lubridate::tz(date),
+                  Result = round(Result, digits = 2),
+                  Result.Unit = "deg C",
+                  Equipment = Equipment_ID,
+                  ActivityID = NA,
+                  ResultStatusID = as.character(ResultStatusID)
+    ) %>%
+    dplyr::select(charID,
+                  Result,
+                  Result.Unit,
+                  Result.Analytical.Method.ID,
+                  RsltType,
+                  ResultStatusID,
+                  StatisticalBasis,
+                  RsltTimeBasis,
+                  cmnt,
+                  ActivityType,
+                  Monitoring_Location_ID,
+                  SmplColMthd,
+                  SmplColEquip,
+                  SmplDepth,
+                  SmplDepthUnit,
+                  SmplColEquipComment,
+                  Samplers,
+                  Equipment,
+                  Project,
+                  ActStartDate,
+                  ActStartTime,
+                  ActStartTimeZone,
+                  ActEndDate,
+                  ActEndTime,
+                  ActEndTimeZone,
+                  AnaStartDate,
+                  AnaStartTime,
+                  AnaStartTimeZone,
+                  AnaEndDate,
+                  AnaEndTime,
+                  AnaEndTimeZone,
+                  ActivityID)
 
 
 
@@ -369,225 +562,32 @@ DO_AWQMS <- sumstat_long %>%
 
 
 
-# raw Temp --------------------------------------------------------------------------------------------------------
-#If no 7DADM value exists, calculate
 
-if(nrow(dplyr::filter(data_fetch_hq, Characteristic.Name == 'Temperature.7DADM')) < 1 &
-   nrow(dplyr::filter(data_fetch_hq, Characteristic.Name == 'Temperature.Primary')) > 0 ){
-
-  data_fetch_raw_temp <-   data_fetch_hq %>%
-    dplyr::filter(Characteristic.Name == 'Temperature.Primary') %>%
-    dplyr::mutate(hr =  format(datetime, "%Y-%j-%H"))
-
-  #Simplify to hourly values and Stats
-  hrsum <- data_fetch_raw_temp %>%
-    dplyr::group_by(Monitoring_Location_ID, Equipment_ID, hr, Result.Unit) %>%
-    dplyr::summarise(date = as.Date(dplyr::first(datetime)),
-                     hrDTmin = min(datetime),
-                     hrDTmax = max(datetime),
-                     hrN = sum(!is.na(Result.Value)),
-                     hrMean = mean(Result.Value, na.rm=TRUE),
-                     hrMin = min(Result.Value, na.rm=TRUE),
-                     hrMax = max(Result.Value, na.rm=TRUE))
-
-
-
-  # For each date, how many hours have hrN > 0
-  # remove rows with zero records in an hour.
-  hrdat<- hrsum[which(hrsum$hrN >0),]
-
-  # Summarise to daily statistics
-  daydat <- hrdat %>%
-    dplyr::group_by(Monitoring_Location_ID, Equipment_ID, date) %>%
-    dplyr::summarise(dDTmin = min(hrDTmin),
-                     dDTmax = max(hrDTmax),
-                     hrNday = length(hrN),
-                     dyN = sum(hrN),
-                     dyMean = mean(hrMean, na.rm=TRUE),
-                     dyMin = min(hrMin, na.rm=TRUE),
-                     dyMax = max(hrMax, na.rm=TRUE))
-
-  daydat <- daydat %>%
-    dplyr::rowwise() %>%
-    dplyr::mutate(ResultStatusID = ifelse(hrNday >= 22, 'Final', "Rejected")) %>%
-    dplyr::mutate(cmnt =ifelse(hrNday >= 22, "Generated by ORDEQ", ifelse(hrNday <= 22 & hrNday >= 20,
-                                                                          paste0("Generated by ORDEQ; Estimated - ", as.character(hrNday), ' hrs with valid data in day' ),
-                                                                          paste0("Generated by ORDEQ; Rejected - ", as.character(hrNday), ' hrs with valid data in day' )) ))
-
-
-  #Filter dataset to only look at 1 monitoring location at a time
-  daydat_station <- daydat %>%
-    dplyr::filter(hrNday >= 22) %>%
-    dplyr::filter(ResultStatusID != "Rejected")
-
-
-  daydat_station2 <- daydat_station %>%
-    dplyr::ungroup() %>%
-    dplyr::group_by(Equipment_ID) %>%
-    dplyr::mutate(row = dplyr::row_number(),
-                  d = runner(x = data.frame(dyMax_run = dyMax, dDTmin_run = dDTmin,
-                                            dDTmax_run = dDTmax),
-                             k = "7 days",
-                             lag = 0,
-                             idx = date,
-                             f = function(x) list(x))) %>%
-    dplyr::mutate(d = purrr::map(d, ~ .x %>%
-                                   dplyr::summarise(ma.max7 = dplyr::case_when(length(dyMax_run) >= 6 ~  mean(dyMax_run),
-                                                                                TRUE ~ NA_real_),
-                                                    ana_startdate7 = min(dDTmin_run),
-                                                    ana_enddate7   = max(dDTmax_run),
-                                                    act_enddate7   = max(dDTmax_run))
-
-    ))%>%
-    tidyr::unnest_wider(d) %>%
-    dplyr::mutate(ma.max7 = ifelse(row < 7, NA, ma.max7)) %>%
-    dplyr::select(-row)
-
-
-
-  # Combine list to single dataframe
-  sum_stats_temp <- daydat_station2 %>%
-    dplyr::arrange(Monitoring_Location_ID, Equipment_ID, date)
-
-  #add any missing columns
-  sumstat_long_cols <- c("ana_startdate7", "ana_startdate30", "ana_enddate7", "ana_enddate30",
-                         "ma.max7", 'ma.min7', 'ma.mean7', 'ma.mean30')
-
-  missing_cols <- setdiff(sumstat_long_cols, names(sum_stats_temp))
-
-  sum_stats_temp[missing_cols] <- NA
-
-
-  #Gather summary statistics from wide format into long format
-  #rename summary statistcs to match AWQMS Import COnfiguration
-  sumstat_long <- sum_stats_temp %>%
-    dplyr::rename("Daily Maximum" = dyMax,
-                  "Daily Minimum" = dyMin,
-                  "Daily Mean"    = dyMean,
-                  "7DMADMin"      = ma.min7,
-                  "7DMADMean"     = ma.mean7,
-                  "7DMADMax"      = ma.max7,
-                  "30DMADMean"    = ma.mean30) %>%
-    tidyr::gather(
-      "Daily Maximum",
-      "Daily Minimum",
-      "Daily Mean",
-      "7DMADMin",
-      "7DMADMean",
-      "7DMADMax",
-      "30DMADMean",
-      key = "StatisticalBasis",
-      value = "Result",
-      na.rm = TRUE
-    ) %>%
-    dplyr::arrange(Monitoring_Location_ID, date)
-
-  #   left_join(Audits_unique, by = c("Monitoring.Location.ID", "charID" = "Characteristic.Name") )
-  Temp_AWQMS <- sumstat_long %>%
-    ungroup() %>%
-    dplyr::mutate(charID = "Temperature, water",
-                  RsltTimeBasis = ifelse(StatisticalBasis == "7DMADMin" |
-                                           StatisticalBasis == "7DMADMean" |
-                                           StatisticalBasis == "7DMADMax", "7 Day",
-                                         ifelse(StatisticalBasis == "30DMADMean", "30 Day", "1 Day" )),
-                  ActivityType = "FMC",
-                  Result.Analytical.Method.ID = "THM01",
-                  SmplColMthd = "ContinuousPrb",
-                  SmplColEquip = "Probe/Sensor",
-                  SmplDepth = "",
-                  SmplDepthUnit = "",
-                  SmplColEquipComment = "",
-                  Samplers = "",
-                  Project = project,
-                  AnaStartDate = case_when(RsltTimeBasis == "1 Day" ~ format(dDTmin, format="%Y-%m-%d"),
-                                           RsltTimeBasis == "7 Day" ~ format(ana_startdate7, format="%Y-%m-%d"),
-                                           RsltTimeBasis == "30 Day" ~ format(ana_startdate30, format="%Y-%m-%d")),
-                  AnaStartTime = case_when(RsltTimeBasis == "1 Day" ~ format(dDTmin, format="%H:%M:%S"),
-                                           RsltTimeBasis == "7 Day" ~ format(ana_startdate7, format="%H:%M:%S"),
-                                           RsltTimeBasis == "30 Day" ~ format(ana_startdate30, format="%H:%M:%S")),
-                  AnaEndDate = case_when(RsltTimeBasis == "1 Day" ~ format(dDTmax, format="%Y-%m-%d"),
-                                         RsltTimeBasis == "7 Day" ~ format(ana_enddate7, format="%Y-%m-%d"),
-                                         RsltTimeBasis == "30 Day" ~ format(ana_enddate30, format="%Y-%m-%d")),
-                  AnaEndTime = case_when(RsltTimeBasis == "1 Day" ~ format(dDTmax, format="%H:%M:%S"),
-                                         RsltTimeBasis == "7 Day" ~ format(ana_enddate7, format="%H:%M:%S"),
-                                         RsltTimeBasis == "30 Day" ~ format(ana_enddate30, format="%H:%M:%S")),
-                  ActStartDate = format(date, format="%Y-%m-%d"),
-                  ActStartTime = "0:00",
-                  ActEndDate = AnaEndDate,
-                  ActEndTime = AnaEndTime,
-                  RsltType = "Calculated",
-                  ActStartTimeZone = lubridate::tz(date),
-                  ActEndTimeZone = lubridate::tz(date),
-                  AnaStartTimeZone = lubridate::tz(date),
-                  AnaEndTimeZone = lubridate::tz(date),
-                  Result = round(Result, digits = 2),
-                  Result.Unit = "deg C",
-                  Equipment = Equipment_ID,
-                  ActivityID = NA,
-                  ResultStatusID = as.character(ResultStatusID)
-    ) %>%
-    dplyr::select(charID,
-                  Result,
-                  Result.Unit,
-                  Result.Analytical.Method.ID,
-                  RsltType,
-                  ResultStatusID,
-                  StatisticalBasis,
-                  RsltTimeBasis,
-                  cmnt,
-                  ActivityType,
-                  Monitoring_Location_ID,
-                  SmplColMthd,
-                  SmplColEquip,
-                  SmplDepth,
-                  SmplDepthUnit,
-                  SmplColEquipComment,
-                  Samplers,
-                  Equipment,
-                  Project,
-                  ActStartDate,
-                  ActStartTime,
-                  ActStartTimeZone,
-                  ActEndDate,
-                  ActEndTime,
-                  ActEndTimeZone,
-                  AnaStartDate,
-                  AnaStartTime,
-                  AnaStartTimeZone,
-                  AnaEndDate,
-                  AnaEndTime,
-                  AnaEndTimeZone,
-                  ActivityID)
-
-
-
-}
 
 #Write summary stat tables. CHeck to see if parameter exists first.
 
-if(exists("DO_AWQMS") & exists("data_fetch_temp") ){
 
-AWQMS_sum_stats <- dplyr::bind_rows(DO_AWQMS, data_fetch_temp) %>%
+if(!exists("DO_AWQMS")) {
+  DO_AWQMS <- NULL
+
+}
+
+if(!exists("data_fetch_temp")) {
+  data_fetch_temp <- NULL
+
+}
+
+if( !exists("Temp_AWQMS")){
+  Temp_AWQMS <- NULL
+
+}
+
+
+
+AWQMS_sum_stats <- dplyr::bind_rows(DO_AWQMS, data_fetch_temp, Temp_AWQMS) %>%
   dplyr::arrange(Monitoring_Location_ID, ActStartDate)
 
-#openxlsx::write.xlsx(AWQMS_sum_stats, file = paste0(save_location, station, "-sumstats.xlsx" ))
 
-} else if(exists("DO_AWQMS") & exists("Temp_AWQMS")) {
-
-  AWQMS_sum_stats <- dplyr::bind_rows(DO_AWQMS, Temp_AWQMS) %>%
-    dplyr::arrange(Monitoring_Location_ID, ActStartDate)
-
-} else if(exists("DO_AWQMS") & !exists("data_fetch_temp") & !exists("Temp_AWQMS") ){
-  AWQMS_sum_stats <-DO_AWQMS
-
-  #openxlsx::write.xlsx(DO_AWQMS, file = paste0(save_location, station, "-sumstats.xlsx" ))
-} else if(!exists("DO_AWQMS") & exists("data_fetch_temp") & !exists("Temp_AWQMS") ){
-
-  AWQMS_sum_stats <-data_fetch_temp
-  #openxlsx::write.xlsx(data_fetch_temp, file = paste0(save_location, station, "-sumstats.xlsx" ))
-} else if(!exists("DO_AWQMS") & !exists("data_fetch_temp") & exists("Temp_AWQMS") ){
-  AWQMS_sum_stats <- Temp_AWQMS
-}
 
 # pH --------------------------------------------------------------------------------------------------------------
 
