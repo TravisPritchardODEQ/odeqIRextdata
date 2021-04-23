@@ -8,7 +8,7 @@
 #' @import lubridate
 #' @import openxlsx
 #' @import zoo
-#' @param project Name of project to include
+#' @param project Name of project for AWQMS
 #' @param type How to select files. "file" lets you specify path in function arguments, 'file_select' brings up a chooser window, "directory" will loop through all files in a directory.
 #' @param path filepath for file to process, if type == "path"
 #' @import dplyr
@@ -22,9 +22,10 @@ CFD_sumstats <- function(project, type = "file", path = NULL){
 
 # Testing -----------------------------------------------------------------
 #
-# project <- "2022 CFD"
-# type <-  "directory"
-# path <-  "C:/Users/tpritch/Documents/2022 CFD test files/CoS_ContinuousWQ_01012018-02062020.xlsx"
+  # project = '2022 IR Call for Data'
+  # type = "file"
+  # path = "//deqlab1/Assessment/Integrated_Report/Call_for_data/2022/Submitted Data/Continuous Data/City of Salem (IR project set)/CoS_ContinuousWQ_01012018-02062020_CopyforTravis.xlsx"
+
 
 
 # Error checking --------------------------------------------------------------------------------------------------
@@ -494,17 +495,17 @@ openxlsx::write.xlsx(cont_pH_AWQMS, paste0(tools::file_path_sans_ext(filepath),"
 # Graphing ----------------------------------------------------------------
 
 
-graph <- ggplot(results_data,aes(x = as.factor(Monitoring.Location.ID), y = r) )+
-  geom_boxplot(fill = "gray83") +
-  geom_jitter(width = 0.2, alpha = 0.1, color = "steelblue4") +
-  facet_grid(Characteristic.Name ~ ., scales = 'free') +
-  theme_bw() +
-  xlab("Monitoring Location") +
-  ylab("Result") +
-  theme(strip.background = element_blank())
+graph <- ggplot2::ggplot(results_data, ggplot2::aes(x = as.factor(Monitoring.Location.ID), y = r) )+
+  ggplot2::geom_boxplot(fill = "gray83") +
+  ggplot2::geom_jitter(width = 0.2, alpha = 0.1, color = "steelblue4") +
+  ggplot2::facet_grid(Characteristic.Name ~ ., scales = 'free') +
+  ggplot2::theme_bw() +
+  ggplot2::xlab("Monitoring Location") +
+  ggplot2::ylab("Result") +
+  ggplot2::theme(strip.background = ggplot2::element_blank())
 
 
-ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot = graph)
+ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot = graph)
 
 
 
@@ -944,17 +945,17 @@ ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot = graph)
     # Graphing ----------------------------------------------------------------
 
 
-    graph <- ggplot(results_data,aes(x = as.factor(Monitoring.Location.ID), y = r) )+
-      geom_boxplot(fill = "gray83") +
-      geom_jitter(width = 0.2, alpha = 0.1, color = "steelblue4") +
-      facet_grid(Characteristic.Name ~ ., scales = 'free') +
-      theme_bw() +
-      xlab("Monitoring Location") +
-      ylab("Result") +
-      theme(strip.background = element_blank())
+    graph <- ggplot2::ggplot(results_data,ggplot2::aes(x = as.factor(Monitoring.Location.ID), y = r) )+
+      ggplot2::geom_boxplot(fill = "gray83") +
+      ggplot2::geom_jitter(width = 0.2, alpha = 0.1, color = "steelblue4") +
+      ggplot2::facet_grid(Characteristic.Name ~ ., scales = 'free') +
+      ggplot2::theme_bw() +
+      ggplot2::xlab("Monitoring Location") +
+      ggplot2::ylab("Result") +
+      ggplot2::theme(strip.background = ggplot2::element_blank())
 
 
-    ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot = graph)
+    ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot = graph)
 
 
 

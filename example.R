@@ -1,6 +1,23 @@
 library(odeqIRextdata)
 library(purrr)
 
+
+
+# Call for data ---------------------------------------------------------------------------------------------------
+
+
+# Enter file
+CFD_sumstats(project = '2022 IR Call for Data',
+             type = "file",
+             path = "C:/Users/tpritch/Documents/Test CFD files/CoS_ContinuousWQ_01012018-02062020_CopyforTravis.xlsx")
+
+#File select
+CFD_sumstats(project = '2022 IR Call for Data', type = "file_select")
+
+#Whole directory
+CFD_sumstats(project = '2022 IR Call for Data', type = "directory")
+
+
 # Portland BES data -------------------------------------------------------
 
 # This file came from Ryan Michie
