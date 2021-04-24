@@ -18,6 +18,16 @@ CFD_sumstats(project = '2022 IR Call for Data', type = "file_select")
 CFD_sumstats(project = '2022 IR Call for Data', type = "directory")
 
 
+
+# NWIS ------------------------------------------------------------------------------------------------------------
+
+a <- Sys.time()
+NWIS_cont_data_pull(start.date = '2019-01-01',
+                    end.date = "2019-12-31",
+                    save_location = 'C:/Users/tpritch/Documents/Test CFD files/',
+                    project = '2022 IR Call for Data' )
+Sys.time() - a
+
 # Portland BES data -------------------------------------------------------
 
 # This file came from Ryan Michie
