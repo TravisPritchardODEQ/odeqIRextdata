@@ -8,7 +8,7 @@
 
 NERRS_sum_stats <- function(){
 
-
+stop("This function uses an outdated summary statistucs script. Update before using.")
 
 options(scipen=999)
 
