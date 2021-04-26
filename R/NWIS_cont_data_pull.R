@@ -39,9 +39,11 @@ NWIS_cont_data_pull <- function(start.date, end.date, save_location, project, st
   options(scipen=999)
 
 
-  sites <- dataRetrieval::whatNWISsites(stateCD = stateCD,
+  sites_import <- dataRetrieval::whatNWISsites(stateCD = stateCD,
                          hasDataTypeCd=c("dv","uv"))
 
+  # remove wells and outfalls
+sites <- dplyr::filter(sites_import, !site_tp_cd %in% c('GW', 'FA-OF'))
 
 
 
@@ -426,6 +428,8 @@ print("Query NWIS Temperature begin....")
                                             site_tp_cd == "LK" ~ "Lake",
                                             site_tp_cd == "ST-CA" ~"Canal Transport",
                                             site_tp_cd == "GW" ~ "Well",
+                                            site_tp_cd == "WE" ~ "Wetland",
+                                            site_tp_cd == "AT" ~ "Atmosphere",
                                             TRUE ~ "ERROR" ),
               COUNTY = county_nm,
               STATE = "OR",
