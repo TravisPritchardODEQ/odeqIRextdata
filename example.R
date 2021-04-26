@@ -6,15 +6,15 @@ library(purrr)
 # Call for data ---------------------------------------------------------------------------------------------------
 
 
-# Enter file
+# Enter file- For when you want to specify a file
 CFD_sumstats(project = '2022 IR Call for Data',
              type = "file",
              path = "C:/Users/tpritch/Documents/Test CFD files/CoS_ContinuousWQ_01012018-02062020_CopyforTravis.xlsx")
 
-#File select
+# File select- This will bring up a window to select which file you want to process
 CFD_sumstats(project = '2022 IR Call for Data', type = "file_select")
 
-#Whole directory
+# Whole directory- When you want to process a whole folder. Will bring up a section window.
 CFD_sumstats(project = '2022 IR Call for Data', type = "directory")
 
 
