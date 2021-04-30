@@ -22,9 +22,9 @@ CFD_sumstats <- function(project, type = "file", path = NULL){
 
 # Testing -----------------------------------------------------------------
 #
-  # project = '2022 IR Call for Data'
-  # type = "file"
-  # path = "//deqlab1/Assessment/Integrated_Report/Call_for_data/2022/Submitted Data/Continuous Data/City of Salem (IR project set)/CoS_ContinuousWQ_01012018-02062020_CopyforTravis.xlsx"
+  project = '2022 IR Call for Data'
+  type = "file"
+  path = "C:/Users/tpritch/Documents/Test CFD files/CFD tests/CoS_ContinuousWQ_01012018-02062020_CopyforTravis.xlsx"
 
 
 

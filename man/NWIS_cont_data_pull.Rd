@@ -18,7 +18,7 @@ NWIS_cont_data_pull(
 
 \item{end.date}{End date of datapull. Format: "yyyy-mm-dd"}
 
-\item{save_location}{Folder to save output files to. Sould end with a /}
+\item{save_location}{Folder to save output files to. Should end with a /}
 
 \item{project}{Name of project for AWQMS}
 

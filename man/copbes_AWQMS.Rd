@@ -8,33 +8,18 @@ saves AWQMS import files}
 copbes_AWQMS(data_inventory, project)
 }
 \arguments{
-\item{project}{project name for AWQMS}
-
-\item{station}{Required string vector of station location IDs to be fetched.}
-
-\item{startdate}{Required string setting the start date of the data being fetched. Format 'yyyy-mm-dd'.}
-
-\item{enddate}{Required string setting the end date of the data being fetched. Format 'yyyy-mm-dd'.}
-
-\item{char}{Required string vector identifying the characteristics to be fetched. Options include:
+\item{data_inventory}{Required datafarme of available data. Columns should match augments of the copbes_data function:
 \itemize{
-\item 'Dissolved oxygen.Field Visits' - Dissolved oxygen concentration grab measurements (mg/l)
-\item 'Dissolved oxygen.Primary' - Continuous dissolved oxygen concentration (mg/l)
-\item 'Dissolved oxygen saturation.Field Visits' (\%)
-\item 'Dissolved oxygen saturation.Primary' (\%)
-\item 'pH.Field Visits' - pH grab measurements (pH)
-\item 'pH.Primary' - Continuous pH (pH)
-\item 'Specific conductance.Field Visits' - Specific conductance grab measurements (uS/cm)
-\item 'Specific conductance.Primary' - Continuous Specific conductance (uS/cm)
-\item 'Temperature.Field Visits' - Water temperature grab measurements (deg C)
-\item 'Temperature.Primary' - Continuous Water temperature (deg C)
-\item 'Temperature.7DADM' - 7-Day mean daily maximum water temperature (deg C)
+\item 'station'
+\item 'startdate'
+\item 'enddate'
+\item 'char'
 }}
 
-\item{save_location}{location to save files to. Should end with/}
+\item{project}{project name for AWQMS}
 }
 \value{
-nothing
+list of deployments, sumstats, and raw pH continuous data
 }
 \description{
 Data is retrieved from City of Portland Bureau of Environmental Services database.

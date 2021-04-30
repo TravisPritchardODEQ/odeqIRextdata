@@ -7,7 +7,7 @@
 CFD_sumstats(project, type = "file", path = NULL)
 }
 \arguments{
-\item{project}{Name of project to include}
+\item{project}{Name of project for AWQMS}
 
 \item{type}{How to select files. "file" lets you specify path in function arguments, 'file_select' brings up a chooser window, "directory" will loop through all files in a directory.}
 

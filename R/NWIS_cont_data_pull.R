@@ -26,13 +26,13 @@ NWIS_cont_data_pull <- function(start.date, end.date, save_location, project, st
 
 # Testing ---------------------------------------------------------------------------------------------------------
 # #
-#   start.date <- "2019-07-01"
-#   end.date <- "2019-07-15"
-#   save_location <- 'C:/Users/tpritch/Documents/Test CFD files/'
-#   project = "2022 IR Call for Data"
-#   stateCD = "or"
-#   split_file = TRUE
-
+  # start.date <- "2018-07-01"
+  # end.date <- "2019-07-15"
+  # save_location <- 'C:/Users/tpritch/Documents/Test CFD files/'
+  # project = "2022 IR Call for Data"
+  # stateCD = "or"
+  # split_file = TRUE
+  #
 
 
 
@@ -189,7 +189,7 @@ print("Query NWIS Temperature begin....")
                   Qualcd != 'P e')
 
 
-  class(nwis.sum.stats.temp.AWQMS$SiteID) <- c("NULL", "number")
+  #class(nwis.sum.stats.temp.AWQMS$SiteID) <- c("NULL", "number")
 
 
 
@@ -208,7 +208,7 @@ print("Query NWIS Temperature begin....")
   nwis.sum.stats.DO <- dataRetrieval::renameNWISColumns(nwis.sum.stats.DO)
 
 
-  # Calculate moving averages. If 1 or more daya are missing from period, do not caluclate average
+  # Calculate moving averages. If 1 or more daya are missing from period, do not calculate average
   DO4ma <- nwis.sum.stats.DO %>%
     dplyr::group_by(site_no) %>%
     dplyr::arrange(site_no, Date) %>%
@@ -316,7 +316,7 @@ print("Query NWIS Temperature begin....")
            Qualcd != 'A e',
            Qualcd != 'P e')
 
-  class(nwis.sum.stats.DO.AWQMS$SiteID) <- c("NULL", "number")
+  #class(nwis.sum.stats.DO.AWQMS$SiteID) <- c("NULL", "number")
 
 
   # NWIS pH -----------------------------------------------------------------
@@ -351,7 +351,7 @@ print("Query NWIS Temperature begin....")
                      "Result_Unit" = "pH Units",
                      "Result_Status_ID" = pH_Inst_cd)
 
-  class(nwis_ph_results$Monitoring_Location_ID) <- c("NULL", "number")
+  #class(nwis_ph_results$Monitoring_Location_ID) <- c("NULL", "number")
 
 
 #Equipment
@@ -363,7 +363,7 @@ print("Query NWIS Temperature begin....")
     mutate(Equipment_ID = paste0(site_no, "-", format(min_date, "%Y%m"), "-", format(max_date, "%Y%m"))) %>%
     select(site_no, Equipment_ID )
 
-  class(all_data_equipment$site_no) <- c("NULL", "number")
+ #class(all_data_equipment$site_no) <- c("NULL", "number")
 
   pH_deployments <-   nwis_ph_results %>%
     dplyr::left_join(all_data_equipment, by = c('Monitoring_Location_ID' = 'site_no' )) %>%
@@ -463,7 +463,7 @@ print("Query NWIS Temperature begin....")
   # remove NAs
   nwis.sites.AWQMS[is.na(nwis.sites.AWQMS)] <- ""
 
-  class(nwis.sites.AWQMS$Stationkey) <- c("NULL", "number")
+  #class(nwis.sites.AWQMS$Stationkey) <- c("NULL", "number")
 
   write.csv(nwis.sites.AWQMS, paste0(save_location,"NWIS_Monitoring_Locations.csv"), row.names = FALSE)
 
@@ -482,15 +482,23 @@ print("Query NWIS Temperature begin....")
     select(-Equipment_ID) %>%
     dplyr::arrange(SiteID, ActStartDate)
 
+
+  print("Check for summary statistics duplicates")
+  duplicate_check <- dup_check_AWQMS(NWIS_sum_stats_data)
+
+  AWQMS_import <- duplicate_check[["non_duplicates"]]
+  suspected_dups <- duplicate_check[["suspected_dups"]]
+  suspected_updates <- duplicate_check[["suspected_updates"]]
+
   print('Writing Sumstat files')
 
   if(split_file){
-    data_split_AWQMS(NWIS_sum_stats_data, split_on = "SiteID", size = 100000, filepath = save_location)
+    data_split_AWQMS(AWQMS_import, split_on = "SiteID", size = 100000, filepath = save_location)
   } else {
   write.csv(NWIS_data, paste0(save_location,"NWIS_sum_stats-", start.date, " - ", end.date, ".csv"), row.names = FALSE)
   }
 
-
-
+write.csv(suspected_dups, paste0(save_location,"NWIS_suspected_duplcates-", start.date, " - ", end.date, ".csv"), row.names = FALSE)
+write.csv(suspected_updates, paste0(save_location,"NWIS_suspected_updates-", start.date, " - ", end.date, ".csv"), row.names = FALSE)
 
 }

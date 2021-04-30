@@ -7,7 +7,7 @@ library(purrr)
 
 
 # Enter file- For when you want to specify a file
-CFD_sumstats(project = '2022 IR Call for Data',
+CFD_sumstats(project = 'Integrated Report – Call for Data',
              type = "file",
              path = "C:/Users/tpritch/Documents/Test CFD files/CoS_ContinuousWQ_01012018-02062020_CopyforTravis.xlsx")
 
@@ -22,10 +22,10 @@ CFD_sumstats(project = '2022 IR Call for Data', type = "directory")
 # NWIS ------------------------------------------------------------------------------------------------------------
 
 a <- Sys.time()
-NWIS_cont_data_pull(start.date = '2019-01-01',
+NWIS_cont_data_pull(start.date = '2017-01-01',
                     end.date = "2019-12-31",
                     save_location = 'C:/Users/tpritch/Documents/Test CFD files/',
-                    project = '2022 IR Call for Data' )
+                    project = 'Integrated Report – Call for Data' )
 Sys.time() - a
 
 # Portland BES data -------------------------------------------------------
@@ -49,7 +49,7 @@ BES_stations <- BES_inventory_import %>%
 
 
 a <- Sys.time()
-Portland_BES_data <- copbes_AWQMS(BES_inventory, "2022 call for data")
+Portland_BES_data <- copbes_AWQMS(BES_inventory, "Integrated Report – Call for Data")
 Sys.time() - a
 
 
