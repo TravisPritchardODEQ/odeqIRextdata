@@ -19,7 +19,8 @@
 #'
 
 
-NWIS_cont_data_pull <- function(start.date, end.date, save_location, project, stateCD = "or", split_file = TRUE){
+NWIS_cont_data_pull <- function(start.date, end.date, save_location, project, stateCD = "or",
+                                split_file = TRUE, check_dups = FALSE){
 
 
 
@@ -483,6 +484,8 @@ print("Query NWIS Temperature begin....")
     dplyr::arrange(SiteID, ActStartDate)
 
 
+  if(check_dups){
+
   print("Check for summary statistics duplicates")
   duplicate_check <- dup_check_AWQMS(NWIS_sum_stats_data)
 
@@ -500,5 +503,16 @@ print("Query NWIS Temperature begin....")
 
 write.csv(suspected_dups, paste0(save_location,"NWIS_suspected_duplcates-", start.date, " - ", end.date, ".csv"), row.names = FALSE)
 write.csv(suspected_updates, paste0(save_location,"NWIS_suspected_updates-", start.date, " - ", end.date, ".csv"), row.names = FALSE)
+
+  } else {
+
+    print('Writing Sumstat files')
+
+    if(split_file){
+      data_split_AWQMS(NWIS_sum_stats_data, split_on = "SiteID", size = 100000, filepath = save_location)
+    } else {
+      write.csv(NWIS_sum_stats_data, paste0(save_location,"NWIS_sum_stats-", start.date, " - ", end.date, ".csv"), row.names = FALSE)
+    }
+}
 
 }
