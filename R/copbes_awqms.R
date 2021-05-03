@@ -46,7 +46,7 @@ copbes_AWQMS <- function(data_inventory,
 
 
 
-data_fetch <- pmap_dfr(data_inventory, copbes_data)
+data_fetch <- purrr::pmap_dfr(data_inventory, copbes_data)
 
 #Filter out lower quality data
  # grade codes
