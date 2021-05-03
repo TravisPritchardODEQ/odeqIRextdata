@@ -29,9 +29,9 @@ CFD_sumstats(project = '2022 IR Call for Data', type = "file_select", is_salem =
 # NWIS ------------------------------------------------------------------------------------------------------------
 
 a <- Sys.time()
-NWIS_cont_data_pull(start.date = '2017-01-01',
-                    end.date = "2019-12-31",
-                    save_location = 'C:/Users/tpritch/Documents/Test CFD files/',
+NWIS_cont_data_pull(start.date = '2016-01-01',
+                    end.date = "2020-12-31",
+                    save_location = '//deqlab1/Assessment/Integrated_Report/DataSources/2022/USGS_NWIS/',
                     project = 'Integrated Report – Call for Data',
                     check_dups = FALSE)
 Sys.time() - a
