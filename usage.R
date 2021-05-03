@@ -2,6 +2,10 @@ library(odeqIRextdata)
 library(purrr)
 
 
+# Install ---------------------------------------------------------------------------------------------------------
+
+devtools::install_github('TravisPritchardODEQ/odeqIRextdata', upgrade = 'never')
+
 
 # Call for data ---------------------------------------------------------------------------------------------------
 
