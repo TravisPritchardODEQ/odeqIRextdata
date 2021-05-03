@@ -36,6 +36,15 @@ dup_check_AWQMS = function(df, mloc_col = "SiteID", date_col = 'ActStartDate',  
 # method_col = "Method"
 # result_col = "Result"
 
+
+
+# Error checking --------------------------------------------------------------------------------------------------
+
+
+if(DBI::dbCanConnect(odbc::odbc(), "AWQMS") == FALSE){
+
+  stop("Unable to make database connection. Are you connected to VPN and have the appropriate ODBC connections?")
+}
 # Create dataframe of query inputs --------------------------------------------------------------------------------
 
 query_params <- df %>%
@@ -105,6 +114,19 @@ data_fetch <- DBI::dbGetQuery(con, qry)
 DBI::dbDisconnect(con)
 print("End AWQMS Query....")
 
+
+if(nrow(data_fetch) == 0){
+
+  print("AWQMS Query provided no potential duplicates")
+
+  dup_check_list <- list(non_duplicates = as.data.frame(df),
+                         suspected_dups = as.data.frame(data_fetch),
+                         suspected_updates = as.data.frame(data_fetch))
+
+  return(dup_check_list)
+
+
+}
 
 
 # Basic manipulations so data matches import file -----------------------------------------------------------------
