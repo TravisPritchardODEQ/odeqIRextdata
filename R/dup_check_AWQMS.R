@@ -77,7 +77,7 @@ for(i in 1:nrow(query_params)) {
 
   query <- query %>%
     paste0(" Where (MLocID = '",
-                       query_params[i, 'SiteID'],
+                       query_params[i, .data[[mloc_col]]],
                        "' and SampleStartDate >= '",
                        as.Date(query_params[[i, 'min_date']]),
                        "' and Char_Name in (",query_params[[i, 'chars']] ,")) ")
@@ -86,7 +86,7 @@ for(i in 1:nrow(query_params)) {
 
     query <- query %>%
       paste0(" OR (MLocID = '",
-           query_params[i, 'SiteID'],
+           query_params[i, .data[[mloc_col]]],
            "' and SampleStartDate >= '",
            as.Date(query_params[[i, 'min_date']]),
            "' and Char_Name in (",query_params[[i, 'chars']] ,")) ")
