@@ -16,15 +16,15 @@
 #' @export
 
 
-CFD_sumstats <- function(project, type = "file", path = NULL){
+CFD_sumstats <- function(project, type = "file", path = NULL, is_salem = FALSE){
 
 
 
 # Testing -----------------------------------------------------------------
 #
-  project = '2022 IR Call for Data'
-  type = "file"
-  path = "C:/Users/tpritch/Documents/Test CFD files/CFD tests/CoS_ContinuousWQ_01012018-02062020_CopyforTravis.xlsx"
+  # project = '2022 IR Call for Data'
+  # type = "file"
+    # path = "C:/Users/tpritch/Documents/Test CFD files/CityOfGresham_GreshContTemp_01012020-12312020.xlsx"
 
 
 
@@ -74,33 +74,63 @@ if(is.na(filepath)){
 # Read file -------------------------------------------------------------------------------------------------------
 if(type != "directory"){
 
+
+
+# Project Info ----------------------------------------------------------------------------------------------------
+
+  if(is_salem){
+    alternate_project_ID <- 'CoSContinuousWQ'
+
+  } else {
+
+    project_import <-   readxl::read_xlsx(filepath, sheet = "Projects")
+
+    alternate_project_ID <- project_import[[1,1]]
+
+  }
+
+
+
+# Results ---------------------------------------------------------------------------------------------------------
+
+
+
 results_col_types <- c('text', 'date', 'date', 'text', 'text', 'text', 'numeric', 'text', 'text')
 
 # read results tab of submitted file
 Results_import <- readxl::read_xlsx(filepath, sheet = "Results", col_types = results_col_types)
 
-colnames(Results_import) <- make.names(names(Results_import), unique=TRUE)
+colnames(Results_import) <- c("Monitoring_Location_ID",
+                              "Activity_Start_Date",
+                              "Activity_Start_Time",
+                              "Activity_Time_Zone",
+                              "Equipment_ID",
+                              "Characteristic_Name",
+                              "Result_Value",
+                              "Result_Unit",
+                              "Result_Status_ID")
+
 
 
 # convert F to C, filter out rejected data, and create datetime column
 results_data <- Results_import %>%
-  mutate(r = ifelse(Result.Unit == "deg F", round((Result.Value - 32)*(5/9),2), Result.Value),
-         r_units = ifelse(Result.Unit == "deg F", "deg C", Result.Unit )) %>%
-  filter(Result.Status.ID != "Rejected") %>%
-  mutate(time_char = strftime(Activity.Start.Time, format = "%H:%M:%S", tz = 'UTC'),
-         datetime = lubridate::ymd_hms(paste(as.Date(Activity.Start.Date), time_char)),
-         Activity.Start.Date = as.Date(Activity.Start.Date))
+  mutate(r = ifelse(Result_Unit == "deg F", round((Result_Value - 32)*(5/9),2), Result_Value),
+         r_units = ifelse(Result_Unit == "deg F", "deg C", Result_Unit )) %>%
+  filter(Result_Status_ID != "Rejected") %>%
+  mutate(time_char = strftime(Activity_Start_Time, format = "%H:%M:%S", tz = 'UTC'),
+         datetime = lubridate::ymd_hms(paste(as.Date(Activity_Start_Date), time_char)),
+         Activity_Start_Date = as.Date(Activity_Start_Date))
 
 
 # Deployment info ---------------------------------------------------------
 
 deployments <- Results_import %>%
-  mutate(time_char = strftime(Activity.Start.Time, format = "%H:%M:%S", tz = 'UTC'),
-         datetime = lubridate::ymd_hms(paste(as.Date(Activity.Start.Date), time_char))) %>%
-  group_by(Monitoring.Location.ID, Equipment.ID.., ) %>%
+  mutate(time_char = strftime(Activity_Start_Time, format = "%H:%M:%S", tz = 'UTC'),
+         datetime = lubridate::ymd_hms(paste(as.Date(Activity_Start_Date), time_char))) %>%
+  group_by(Monitoring_Location_ID, Equipment_ID, ) %>%
   summarise(startdate = min(datetime),
             enddate = max(datetime) + minutes(5),
-            TZ = first(Activity.Start.End.Time.Zone))
+            TZ = first(Activity_Time_Zone))
 
 write.csv(deployments, paste0(tools::file_path_sans_ext(filepath),"-deployments.csv"), row.names = FALSE)
 
@@ -111,7 +141,7 @@ write.csv(deployments, paste0(tools::file_path_sans_ext(filepath),"-deployments.
 
 
 # get unique list of characteristics to run for loop through
-unique_characteritics <- unique(Results_import$Characteristic.Name)
+unique_characteritics <- unique(Results_import$Characteristic_Name)
 
 
 #create list for getting data out of loop
@@ -131,14 +161,15 @@ for (i in 1:length(unique_characteritics)){
 
   # Filter so table only contains single characteristic
   results_data_char <- results_data %>%
-    filter(Characteristic.Name == char) %>%
+    filter(Characteristic_Name == char) %>%
     # generare unique hour field for hourly values and stats
-    mutate(hr =  format(datetime, "%Y-%j-%H"))
+    mutate(hr =  format(datetime, "%Y-%j-%H"),
+           mloc_equip = paste0(Monitoring_Location_ID, "-", Equipment_ID))
 
   # Simplify to hourly values and Stats
   hrsum <- results_data_char %>%
-    group_by(Monitoring.Location.ID, Equipment.ID.., hr, r_units, Activity.Start.End.Time.Zone, Result.Unit) %>%
-    summarise(date = mean(Activity.Start.Date),
+    group_by(Monitoring_Location_ID, Equipment_ID, hr, r_units, Activity_Time_Zone, Result_Unit, mloc_equip) %>%
+    summarise(date = mean(Activity_Start_Date),
               hrDTmin = min(datetime),
               hrDTmax = max(datetime),
               hrN = sum(!is.na(r)),
@@ -152,7 +183,7 @@ for (i in 1:length(unique_characteritics)){
   hrdat<- hrsum[which(hrsum$hrN >0),]
 
   daydat <- hrdat %>%
-    dplyr::group_by(Monitoring.Location.ID, Equipment.ID.., date, Result.Unit, Activity.Start.End.Time.Zone) %>%
+    dplyr::group_by(Monitoring_Location_ID, Equipment_ID, date, Result_Unit, Activity_Time_Zone, mloc_equip) %>%
     dplyr::summarise(dDTmin = min(hrDTmin),
                      dDTmax = max(hrDTmax),
                      hrNday = length(hrN),
@@ -167,7 +198,7 @@ for (i in 1:length(unique_characteritics)){
 
 
   #Deal with DO Results
-  if (results_data_char$Characteristic.Name[1] == "Dissolved oxygen (DO)") {
+  if (results_data_char$Characteristic_Name[1] == "Dissolved oxygen (DO)") {
 
     #Filter dataset to only look at 1 monitoring location at a time
     daydat_station <- daydat %>%
@@ -177,7 +208,7 @@ for (i in 1:length(unique_characteritics)){
 
       daydat_station2 <- daydat_station %>%
         dplyr::ungroup() %>%
-        dplyr::group_by(Equipment.ID..) %>%
+        dplyr::group_by(mloc_equip) %>%
         dplyr::mutate(row = dplyr::row_number(),
                       d = runner(x = data.frame(dyMean_run = dyMean, dyMin_run = dyMin, dDTmin_run = dDTmin,
                                                 dDTmax_run = dDTmax),
@@ -220,14 +251,14 @@ for (i in 1:length(unique_characteritics)){
 
       # Combine list to single dataframe
       sum_stats <- daydat_station2 %>%
-        dplyr::arrange(Monitoring.Location.ID, Equipment.ID.., date)
+        dplyr::arrange(Monitoring_Location_ID, Equipment_ID, date)
 
 
   } # end of DO if statement
 
 
   ##  TEMPERATURE
-  if (results_data_char$Characteristic.Name[1] == 'Temperature, water' ) {
+  if (results_data_char$Characteristic_Name[1] == 'Temperature, water' ) {
 
 
 
@@ -277,7 +308,7 @@ for (i in 1:length(unique_characteritics)){
 
     # Combine list to single dataframe
     sum_stats <- daydat_station2 %>%
-      dplyr::arrange(Monitoring.Location.ID, Equipment.ID.., date)
+      dplyr::arrange(Monitoring_Location_ID, Equipment_ID, date)
 
 
 
@@ -287,7 +318,7 @@ for (i in 1:length(unique_characteritics)){
 
 
   ## Other - just set sum_stats to daydat, since no moving averages need to be generated.
-  if (results_data_char$Characteristic.Name[1] != 'Temperature, water' & results_data_char$Characteristic.Name[1] != "Dissolved oxygen (DO)"  ) {
+  if (results_data_char$Characteristic_Name[1] != 'Temperature, water' & results_data_char$Characteristic_Name[1] != "Dissolved oxygen (DO)"  ) {
 
     sum_stats <- daydat
 
@@ -339,8 +370,8 @@ sumstat_long <- sumstat %>%
     value = "Result",
     na.rm = TRUE
   ) %>%
-  arrange(Monitoring.Location.ID, date) %>%
-  rename(Equipment = Equipment.ID..)
+  arrange(Monitoring_Location_ID, date) %>%
+  rename(Equipment = Equipment_ID)
 
 
 # Read Audit Data ---------------------------------------------------------
@@ -358,7 +389,7 @@ sumstat_long <- sumstat %>%
 #   filter(!is.na(Project.ID))
 #
 # # table of methods unique to project, location, equipment, char, and method
-# Audits_unique <- unique(Audits[c("Project.ID", "Monitoring.Location.ID", "Equipment.ID..", "Characteristic.Name", "Result.Analytical.Method.ID")])
+# Audits_unique <- unique(Audits[c("Project.ID", "Monitoring_Location_ID", "Equipment_ID", "Characteristic_Name", "Result.Analytical.Method.ID")])
 #
 #
 #
@@ -367,13 +398,13 @@ sumstat_long <- sumstat %>%
 # If template has Result.Qualifier as column, use that value, if not use blank.
 # Audit_info <- Audits %>%
 #   mutate(Result.Qualifier = ifelse("Result.Qualifier" %in% colnames(Audits), Result.Qualifier, "" ),
-#          Activity.Start.Time = as.character(strftime(Activity.Start.Time, format = "%H:%M:%S", tz = "UTC")),
+#          Activity_Start_Time = as.character(strftime(Activity_Start_Time, format = "%H:%M:%S", tz = "UTC")),
 #          Activity.End.Time = as.character(strftime(Activity.End.Time, format = "%H:%M:%S", tz = "UTC")) ) %>%
-#   select(Project.ID, Monitoring.Location.ID, Activity.Start.Date,
-#          Activity.Start.Time, Activity.End.Date, Activity.End.Time,
-#          Activity.Start.End.Time.Zone, Activity.Type,
-#          Activity.ID..Column.Locked., Equipment.ID.., Sample.Collection.Method,
-#          Characteristic.Name, Result.Value, Result.Unit, Result.Analytical.Method.ID,
+#   select(Project.ID, Monitoring_Location_ID, Activity_Start_Date,
+#          Activity_Start_Time, Activity.End.Date, Activity.End.Time,
+#          Activity_Time_Zone, Activity.Type,
+#          Activity.ID..Column.Locked., Equipment_ID, Sample.Collection.Method,
+#          Characteristic_Name, Result.Value, Result_Unit, Result.Analytical.Method.ID,
 #          Result.Analytical.Method.Context, Result.Value.Type, Result.Status.ID,
 #          Result.Qualifier, Result.Comment)
 
@@ -388,7 +419,7 @@ sumstat_long <- sumstat %>%
 # Join method to sumstat table
 # sumstat_long <- sumstat_long %>%
 #   mutate(Equipment = as.character(Equipment)) %>%
-#   left_join(Audits_unique, by = c("Monitoring.Location.ID", "charID" = "Characteristic.Name") )
+#   left_join(Audits_unique, by = c("Monitoring_Location_ID", "charID" = "Characteristic_Name") )
 AQWMS_sum_stat <- sumstat_long %>%
   ungroup() %>%
   mutate(RsltTimeBasis = ifelse(StatisticalBasis == "7DMADMin" |
@@ -409,6 +440,7 @@ AQWMS_sum_stat <- sumstat_long %>%
          SmplColEquipComment = "",
          Samplers = "",
          Project = project,
+         alt_project = alternate_project_ID,
          AnaStartDate = case_when(RsltTimeBasis == "1 Day" ~ format(dDTmin, format="%Y-%m-%d"),
                                   RsltTimeBasis == "7 Day" ~ format(ana_startdate7, format="%Y-%m-%d"),
                                   RsltTimeBasis == "30 Day" ~ format(ana_startdate30, format="%Y-%m-%d")),
@@ -426,15 +458,15 @@ AQWMS_sum_stat <- sumstat_long %>%
          ActEndDate = AnaEndDate,
          ActEndTime = AnaEndTime,
          RsltType = "Calculated",
-         ActStartTimeZone = Activity.Start.End.Time.Zone,
-         ActEndTimeZone = Activity.Start.End.Time.Zone,
-         AnaStartTimeZone = Activity.Start.End.Time.Zone,
-         AnaEndTimeZone = Activity.Start.End.Time.Zone,
+         ActStartTimeZone = Activity_Time_Zone,
+         ActEndTimeZone = Activity_Time_Zone,
+         AnaStartTimeZone = Activity_Time_Zone,
+         AnaEndTimeZone = Activity_Time_Zone,
          Result = round(Result, digits = 2)
   ) %>%
   select(charID,
          Result,
-         Result.Unit,
+         Result_Unit,
          Result.Analytical.Method.ID,
          RsltType,
          ResultStatusID,
@@ -442,7 +474,7 @@ AQWMS_sum_stat <- sumstat_long %>%
          RsltTimeBasis,
          cmnt,
          ActivityType,
-         Monitoring.Location.ID,
+         Monitoring_Location_ID,
          SmplColMthd,
          SmplColEquip,
          SmplDepth,
@@ -451,6 +483,7 @@ AQWMS_sum_stat <- sumstat_long %>%
          Samplers,
          Equipment,
          Project,
+         alt_project,
          ActStartDate,
          ActStartTime,
          ActStartTimeZone,
@@ -472,20 +505,20 @@ openxlsx::write.xlsx(AQWMS_sum_stat, paste0(tools::file_path_sans_ext(filepath),
 # Cont. pH --------------------------------------------------------------------------------------------------------
 
 cont_Ph <- results_data %>%
-  filter(Characteristic.Name == "pH")
+  filter(Characteristic_Name == "pH")
 
 
 
 cont_pH_AWQMS <- cont_Ph %>%
-  dplyr::transmute('Monitoring_Location_ID' = Monitoring.Location.ID ,
+  dplyr::transmute('Monitoring_Location_ID' = Monitoring_Location_ID ,
                    "Activity_start_date" = format(datetime, "%Y/%m/%d"),
                    'Activity_Start_Time' =format(datetime, "%H:%M:%S"),
-                   'Activity_Time_Zone' = Activity.Start.End.Time.Zone,
-                   'Equipment_ID' = Monitoring.Location.ID ,
-                   'Characteristic_Name' = Characteristic.Name ,
-                   "Result_Value" = Result.Value,
-                   "Result_Unit" = Result.Unit,
-                   "Result_Status_ID" = Result.Status.ID)
+                   'Activity_Time_Zone' = Activity_Time_Zone,
+                   'Equipment_ID' = Monitoring_Location_ID ,
+                   'Characteristic_Name' = Characteristic_Name ,
+                   "Result_Value" = Result_Value,
+                   "Result_Unit" = Result_Unit,
+                   "Result_Status_ID" = Result_Status_ID)
 
 if(nrow(cont_pH_AWQMS) > 0){
 # Export to same place as the originial file
@@ -495,10 +528,10 @@ openxlsx::write.xlsx(cont_pH_AWQMS, paste0(tools::file_path_sans_ext(filepath),"
 # Graphing ----------------------------------------------------------------
 
 
-graph <- ggplot2::ggplot(results_data, ggplot2::aes(x = as.factor(Monitoring.Location.ID), y = r) )+
+graph <- ggplot2::ggplot(results_data, ggplot2::aes(x = as.factor(Monitoring_Location_ID), y = r) )+
   ggplot2::geom_boxplot(fill = "gray83") +
   ggplot2::geom_jitter(width = 0.2, alpha = 0.1, color = "steelblue4") +
-  ggplot2::facet_grid(Characteristic.Name ~ ., scales = 'free') +
+  ggplot2::facet_grid(Characteristic_Name ~ ., scales = 'free') +
   ggplot2::theme_bw() +
   ggplot2::xlab("Monitoring Location") +
   ggplot2::ylab("Result") +
@@ -522,35 +555,62 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
                       ignore.case = FALSE, include.dirs = FALSE, no.. = FALSE)
 
   for(z in 1:length(files)){
+    # Project Info ----------------------------------------------------------------------------------------------------
 
-    filepath <- files[z]
+
+    if(is_salem){
+      alternate_project_ID <- 'CoSContinuousWQ'
+
+    } else {
+
+      project_import <-   readxl::read_xlsx(filepath, sheet = "Projects")
+
+      alternate_project_ID <- project_import[[1,1]]
+
+    }
+
+
+
+    # Results ---------------------------------------------------------------------------------------------------------
+
+
+
     results_col_types <- c('text', 'date', 'date', 'text', 'text', 'text', 'numeric', 'text', 'text')
 
     # read results tab of submitted file
     Results_import <- readxl::read_xlsx(filepath, sheet = "Results", col_types = results_col_types)
 
-    colnames(Results_import) <- make.names(names(Results_import), unique=TRUE)
+    colnames(Results_import) <- c("Monitoring_Location_ID",
+                                  "Activity_Start_Date",
+                                  "Activity_Start_Time",
+                                  "Activity_Time_Zone",
+                                  "Equipment_ID",
+                                  "Characteristic_Name",
+                                  "Result_Value",
+                                  "Result_Unit",
+                                  "Result_Status_ID")
+
 
 
     # convert F to C, filter out rejected data, and create datetime column
     results_data <- Results_import %>%
-      mutate(r = ifelse(Result.Unit == "deg F", round((Result.Value - 32)*(5/9),2), Result.Value),
-             r_units = ifelse(Result.Unit == "deg F", "deg C", Result.Unit )) %>%
-      filter(Result.Status.ID != "Rejected") %>%
-      mutate(time_char = strftime(Activity.Start.Time, format = "%H:%M:%S", tz = 'UTC'),
-             datetime = lubridate::ymd_hms(paste(as.Date(Activity.Start.Date), time_char)),
-             Activity.Start.Date = as.Date(Activity.Start.Date))
+      mutate(r = ifelse(Result_Unit == "deg F", round((Result_Value - 32)*(5/9),2), Result_Value),
+             r_units = ifelse(Result_Unit == "deg F", "deg C", Result_Unit )) %>%
+      filter(Result_Status_ID != "Rejected") %>%
+      mutate(time_char = strftime(Activity_Start_Time, format = "%H:%M:%S", tz = 'UTC'),
+             datetime = lubridate::ymd_hms(paste(as.Date(Activity_Start_Date), time_char)),
+             Activity_Start_Date = as.Date(Activity_Start_Date))
 
 
     # Deployment info ---------------------------------------------------------
 
     deployments <- Results_import %>%
-      mutate(time_char = strftime(Activity.Start.Time, format = "%H:%M:%S", tz = 'UTC'),
-             datetime = lubridate::ymd_hms(paste(as.Date(Activity.Start.Date), time_char))) %>%
-      group_by(Monitoring.Location.ID, Equipment.ID.., ) %>%
+      mutate(time_char = strftime(Activity_Start_Time, format = "%H:%M:%S", tz = 'UTC'),
+             datetime = lubridate::ymd_hms(paste(as.Date(Activity_Start_Date), time_char))) %>%
+      group_by(Monitoring_Location_ID, Equipment_ID, ) %>%
       summarise(startdate = min(datetime),
                 enddate = max(datetime) + minutes(5),
-                TZ = first(Activity.Start.End.Time.Zone))
+                TZ = first(Activity_Time_Zone))
 
     write.csv(deployments, paste0(tools::file_path_sans_ext(filepath),"-deployments.csv"), row.names = FALSE)
 
@@ -561,7 +621,7 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
 
 
     # get unique list of characteristics to run for loop through
-    unique_characteritics <- unique(Results_import$Characteristic.Name)
+    unique_characteritics <- unique(Results_import$Characteristic_Name)
 
 
     #create list for getting data out of loop
@@ -581,14 +641,15 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
 
       # Filter so table only contains single characteristic
       results_data_char <- results_data %>%
-        filter(Characteristic.Name == char) %>%
+        filter(Characteristic_Name == char) %>%
         # generare unique hour field for hourly values and stats
-        mutate(hr =  format(datetime, "%Y-%j-%H"))
+        mutate(hr =  format(datetime, "%Y-%j-%H"),
+               mloc_equip = paste0(Monitoring_Location_ID, "-", Equipment_ID))
 
       # Simplify to hourly values and Stats
       hrsum <- results_data_char %>%
-        group_by(Monitoring.Location.ID, Equipment.ID.., hr, r_units, Activity.Start.End.Time.Zone, Result.Unit) %>%
-        summarise(date = mean(Activity.Start.Date),
+        group_by(Monitoring_Location_ID, Equipment_ID, hr, r_units, Activity_Time_Zone, Result_Unit, mloc_equip) %>%
+        summarise(date = mean(Activity_Start_Date),
                   hrDTmin = min(datetime),
                   hrDTmax = max(datetime),
                   hrN = sum(!is.na(r)),
@@ -602,7 +663,7 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
       hrdat<- hrsum[which(hrsum$hrN >0),]
 
       daydat <- hrdat %>%
-        dplyr::group_by(Monitoring.Location.ID, Equipment.ID.., date, Result.Unit, Activity.Start.End.Time.Zone) %>%
+        dplyr::group_by(Monitoring_Location_ID, Equipment_ID, date, Result_Unit, Activity_Time_Zone, mloc_equip) %>%
         dplyr::summarise(dDTmin = min(hrDTmin),
                          dDTmax = max(hrDTmax),
                          hrNday = length(hrN),
@@ -617,7 +678,7 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
 
 
       #Deal with DO Results
-      if (results_data_char$Characteristic.Name[1] == "Dissolved oxygen (DO)") {
+      if (results_data_char$Characteristic_Name[1] == "Dissolved oxygen (DO)") {
 
         #Filter dataset to only look at 1 monitoring location at a time
         daydat_station <- daydat %>%
@@ -627,7 +688,7 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
 
         daydat_station2 <- daydat_station %>%
           dplyr::ungroup() %>%
-          dplyr::group_by(Equipment.ID..) %>%
+          dplyr::group_by(mloc_equip) %>%
           dplyr::mutate(row = dplyr::row_number(),
                         d = runner(x = data.frame(dyMean_run = dyMean, dyMin_run = dyMin, dDTmin_run = dDTmin,
                                                   dDTmax_run = dDTmax),
@@ -670,14 +731,14 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
 
         # Combine list to single dataframe
         sum_stats <- daydat_station2 %>%
-          dplyr::arrange(Monitoring.Location.ID, Equipment.ID.., date)
+          dplyr::arrange(Monitoring_Location_ID, Equipment_ID, date)
 
 
       } # end of DO if statement
 
 
       ##  TEMPERATURE
-      if (results_data_char$Characteristic.Name[1] == 'Temperature, water' ) {
+      if (results_data_char$Characteristic_Name[1] == 'Temperature, water' ) {
 
 
 
@@ -727,7 +788,7 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
 
         # Combine list to single dataframe
         sum_stats <- daydat_station2 %>%
-          dplyr::arrange(Monitoring.Location.ID, Equipment.ID.., date)
+          dplyr::arrange(Monitoring_Location_ID, Equipment_ID, date)
 
 
 
@@ -737,7 +798,7 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
 
 
       ## Other - just set sum_stats to daydat, since no moving averages need to be generated.
-      if (results_data_char$Characteristic.Name[1] != 'Temperature, water' & results_data_char$Characteristic.Name[1] != "Dissolved oxygen (DO)"  ) {
+      if (results_data_char$Characteristic_Name[1] != 'Temperature, water' & results_data_char$Characteristic_Name[1] != "Dissolved oxygen (DO)"  ) {
 
         sum_stats <- daydat
 
@@ -789,8 +850,8 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
         value = "Result",
         na.rm = TRUE
       ) %>%
-      arrange(Monitoring.Location.ID, date) %>%
-      rename(Equipment = Equipment.ID..)
+      arrange(Monitoring_Location_ID, date) %>%
+      rename(Equipment = Equipment_ID)
 
 
     # Read Audit Data ---------------------------------------------------------
@@ -808,7 +869,7 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
     #   filter(!is.na(Project.ID))
     #
     # # table of methods unique to project, location, equipment, char, and method
-    # Audits_unique <- unique(Audits[c("Project.ID", "Monitoring.Location.ID", "Equipment.ID..", "Characteristic.Name", "Result.Analytical.Method.ID")])
+    # Audits_unique <- unique(Audits[c("Project.ID", "Monitoring_Location_ID", "Equipment_ID", "Characteristic_Name", "Result.Analytical.Method.ID")])
     #
     #
     #
@@ -817,13 +878,13 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
     # If template has Result.Qualifier as column, use that value, if not use blank.
     # Audit_info <- Audits %>%
     #   mutate(Result.Qualifier = ifelse("Result.Qualifier" %in% colnames(Audits), Result.Qualifier, "" ),
-    #          Activity.Start.Time = as.character(strftime(Activity.Start.Time, format = "%H:%M:%S", tz = "UTC")),
+    #          Activity_Start_Time = as.character(strftime(Activity_Start_Time, format = "%H:%M:%S", tz = "UTC")),
     #          Activity.End.Time = as.character(strftime(Activity.End.Time, format = "%H:%M:%S", tz = "UTC")) ) %>%
-    #   select(Project.ID, Monitoring.Location.ID, Activity.Start.Date,
-    #          Activity.Start.Time, Activity.End.Date, Activity.End.Time,
-    #          Activity.Start.End.Time.Zone, Activity.Type,
-    #          Activity.ID..Column.Locked., Equipment.ID.., Sample.Collection.Method,
-    #          Characteristic.Name, Result.Value, Result.Unit, Result.Analytical.Method.ID,
+    #   select(Project.ID, Monitoring_Location_ID, Activity_Start_Date,
+    #          Activity_Start_Time, Activity.End.Date, Activity.End.Time,
+    #          Activity_Time_Zone, Activity.Type,
+    #          Activity.ID..Column.Locked., Equipment_ID, Sample.Collection.Method,
+    #          Characteristic_Name, Result.Value, Result_Unit, Result.Analytical.Method.ID,
     #          Result.Analytical.Method.Context, Result.Value.Type, Result.Status.ID,
     #          Result.Qualifier, Result.Comment)
 
@@ -838,7 +899,7 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
     # Join method to sumstat table
     # sumstat_long <- sumstat_long %>%
     #   mutate(Equipment = as.character(Equipment)) %>%
-    #   left_join(Audits_unique, by = c("Monitoring.Location.ID", "charID" = "Characteristic.Name") )
+    #   left_join(Audits_unique, by = c("Monitoring_Location_ID", "charID" = "Characteristic_Name") )
     AQWMS_sum_stat <- sumstat_long %>%
       ungroup() %>%
       mutate(RsltTimeBasis = ifelse(StatisticalBasis == "7DMADMin" |
@@ -859,6 +920,7 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
              SmplColEquipComment = "",
              Samplers = "",
              Project = project,
+             alt_project = alternate_project_ID,
              AnaStartDate = case_when(RsltTimeBasis == "1 Day" ~ format(dDTmin, format="%Y-%m-%d"),
                                       RsltTimeBasis == "7 Day" ~ format(ana_startdate7, format="%Y-%m-%d"),
                                       RsltTimeBasis == "30 Day" ~ format(ana_startdate30, format="%Y-%m-%d")),
@@ -876,15 +938,15 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
              ActEndDate = AnaEndDate,
              ActEndTime = AnaEndTime,
              RsltType = "Calculated",
-             ActStartTimeZone = Activity.Start.End.Time.Zone,
-             ActEndTimeZone = Activity.Start.End.Time.Zone,
-             AnaStartTimeZone = Activity.Start.End.Time.Zone,
-             AnaEndTimeZone = Activity.Start.End.Time.Zone,
+             ActStartTimeZone = Activity_Time_Zone,
+             ActEndTimeZone = Activity_Time_Zone,
+             AnaStartTimeZone = Activity_Time_Zone,
+             AnaEndTimeZone = Activity_Time_Zone,
              Result = round(Result, digits = 2)
       ) %>%
       select(charID,
              Result,
-             Result.Unit,
+             Result_Unit,
              Result.Analytical.Method.ID,
              RsltType,
              ResultStatusID,
@@ -892,7 +954,7 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
              RsltTimeBasis,
              cmnt,
              ActivityType,
-             Monitoring.Location.ID,
+             Monitoring_Location_ID,
              SmplColMthd,
              SmplColEquip,
              SmplDepth,
@@ -901,6 +963,7 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
              Samplers,
              Equipment,
              Project,
+             alt_project,
              ActStartDate,
              ActStartTime,
              ActStartTimeZone,
@@ -922,20 +985,20 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
     # Cont. pH --------------------------------------------------------------------------------------------------------
 
     cont_Ph <- results_data %>%
-      filter(Characteristic.Name == "pH")
+      filter(Characteristic_Name == "pH")
 
 
 
     cont_pH_AWQMS <- cont_Ph %>%
-      dplyr::transmute('Monitoring_Location_ID' = Monitoring.Location.ID ,
+      dplyr::transmute('Monitoring_Location_ID' = Monitoring_Location_ID ,
                        "Activity_start_date" = format(datetime, "%Y/%m/%d"),
                        'Activity_Start_Time' =format(datetime, "%H:%M:%S"),
-                       'Activity_Time_Zone' = Activity.Start.End.Time.Zone,
-                       'Equipment_ID' = Monitoring.Location.ID ,
-                       'Characteristic_Name' = Characteristic.Name ,
-                       "Result_Value" = Result.Value,
-                       "Result_Unit" = Result.Unit,
-                       "Result_Status_ID" = Result.Status.ID)
+                       'Activity_Time_Zone' = Activity_Time_Zone,
+                       'Equipment_ID' = Monitoring_Location_ID ,
+                       'Characteristic_Name' = Characteristic_Name ,
+                       "Result_Value" = Result_Value,
+                       "Result_Unit" = Result_Unit,
+                       "Result_Status_ID" = Result_Status_ID)
 
     if(nrow(cont_pH_AWQMS) > 0){
       # Export to same place as the originial file
@@ -945,10 +1008,10 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
     # Graphing ----------------------------------------------------------------
 
 
-    graph <- ggplot2::ggplot(results_data,ggplot2::aes(x = as.factor(Monitoring.Location.ID), y = r) )+
+    graph <- ggplot2::ggplot(results_data, ggplot2::aes(x = as.factor(Monitoring_Location_ID), y = r) )+
       ggplot2::geom_boxplot(fill = "gray83") +
       ggplot2::geom_jitter(width = 0.2, alpha = 0.1, color = "steelblue4") +
-      ggplot2::facet_grid(Characteristic.Name ~ ., scales = 'free') +
+      ggplot2::facet_grid(Characteristic_Name ~ ., scales = 'free') +
       ggplot2::theme_bw() +
       ggplot2::xlab("Monitoring Location") +
       ggplot2::ylab("Result") +
@@ -956,9 +1019,6 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
 
 
     ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot = graph)
-
-
-
 
 
 
