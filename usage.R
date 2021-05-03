@@ -17,6 +17,13 @@ CFD_sumstats(project = '2022 IR Call for Data', type = "file_select")
 # Whole directory- When you want to process a whole folder. Will bring up a section window.
 CFD_sumstats(project = '2022 IR Call for Data', type = "directory")
 
+#################################################################################
+# If City of Salem, who didn't use the project tab, use is_salem = TRUE. Example:
+#################################################################################
+
+CFD_sumstats(project = '2022 IR Call for Data', type = "file_select", is_salem = TRUE)
+
+
 
 
 # NWIS ------------------------------------------------------------------------------------------------------------
@@ -25,7 +32,8 @@ a <- Sys.time()
 NWIS_cont_data_pull(start.date = '2017-01-01',
                     end.date = "2019-12-31",
                     save_location = 'C:/Users/tpritch/Documents/Test CFD files/',
-                    project = 'Integrated Report – Call for Data' )
+                    project = 'Integrated Report – Call for Data',
+                    check_dups = FALSE)
 Sys.time() - a
 
 # Portland BES data -------------------------------------------------------
@@ -57,18 +65,5 @@ deployments <- Portland_BES_data[['deployments']]
 sumstats <- Portland_BES_data[['sumstats']]
 pH_cont <- Portland_BES_data[['pH_continuous']]
 
-Portland_BES_dup_check <- dup_check_AWQMS(sumstats,
-                                          mloc_col = 'Monitoring_Location_ID',
-                                          date_col = 'ActStartDate',
-                                          time_col = 'ActStartTime',
-                                          char_col = 'charID',
-                                          stat_basis_col = 'StatisticalBasis',
-                                          depth_col = 'SmplDepth',
-                                          method_col = 'Result.Analytical.Method.ID',
-                                          result_col = 'Result')
-
-COP_BES_AWQMS_import <- Portland_BES_dup_check[["non_duplicates"]]
-COP_BES_suspected_dups <- Portland_BES_dup_check[["suspected_dups"]]
-COP_BES_suspected_updates <- Portland_BES_dup_check[["suspected_updates"]]
 
 
