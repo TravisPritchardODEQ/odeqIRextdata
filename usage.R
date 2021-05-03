@@ -57,4 +57,18 @@ deployments <- Portland_BES_data[['deployments']]
 sumstats <- Portland_BES_data[['sumstats']]
 pH_cont <- Portland_BES_data[['pH_continuous']]
 
+Portland_BES_dup_check <- dup_check_AWQMS(sumstats,
+                                          mloc_col = 'Monitoring_Location_ID',
+                                          date_col = 'ActStartDate',
+                                          time_col = 'ActStartTime',
+                                          char_col = 'charID',
+                                          stat_basis_col = 'StatisticalBasis',
+                                          depth_col = 'SmplDepth',
+                                          method_col = 'Result.Analytical.Method.ID',
+                                          result_col = 'Result')
+
+COP_BES_AWQMS_import <- Portland_BES_dup_check[["non_duplicates"]]
+COP_BES_suspected_dups <- Portland_BES_dup_check[["suspected_dups"]]
+COP_BES_suspected_updates <- Portland_BES_dup_check[["suspected_updates"]]
+
 
