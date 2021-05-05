@@ -65,7 +65,7 @@ CFD_sumstats <- function(project, type = "file", path = NULL, is_salem = FALSE){
 
   }
 
-if(is.na(filepath)){
+if(is.na(filepath) & type != 'directory'){
   stop("Filepath must be selected!")
 
 }
