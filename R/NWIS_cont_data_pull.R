@@ -477,11 +477,6 @@ print("Query NWIS Temperature begin....")
                          ,nwis.sum.stats.DO.AWQMS)
 
 
-  NWIS_sum_stats_data <- NWIS_sum_stats_data %>%
-    left_join(all_data_equipment, by = c('SiteID' = 'site_no')) %>%
-    mutate(SmplEquipID = Equipment_ID) %>%
-    select(-Equipment_ID) %>%
-    dplyr::arrange(SiteID, ActStartDate)
 
 
   if(check_dups){
