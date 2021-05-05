@@ -22,8 +22,8 @@ CFD_sumstats <- function(project, type = "file", path = NULL, is_salem = FALSE){
 
 # Testing -----------------------------------------------------------------
 #
-  # project = '2022 IR Call for Data'
-  # type = "file"
+  project = '2022 IR Call for Data'
+  type = "directory"
     # path = "C:/Users/tpritch/Documents/Test CFD files/CityOfGresham_GreshContTemp_01012020-12312020.xlsx"
 
 
@@ -58,17 +58,12 @@ CFD_sumstats <- function(project, type = "file", path = NULL, is_salem = FALSE){
 
   } else if(type == 'directory'){
 
-    directory <- choose.dir(default = "", caption = "Select folder")
+    directory <- choose.dir(default = "//deqlab1/Assessment/", caption = "Select folder")
 
   } else if(type == 'file'){
     filepath <-  path
 
   }
-
-if(is.na(filepath) & type != 'directory'){
-  stop("Filepath must be selected!")
-
-}
 
 
 # Read file -------------------------------------------------------------------------------------------------------
@@ -556,7 +551,7 @@ ggplot2::ggsave(paste0(tools::file_path_sans_ext(filepath),"-Graph.png"), plot =
 
   for(z in 1:length(files)){
     # Project Info ----------------------------------------------------------------------------------------------------
-
+filepath <- files[[z]]
 
     if(is_salem){
       alternate_project_ID <- 'CoSContinuousWQ'
