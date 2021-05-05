@@ -16,10 +16,10 @@ CFD_sumstats(project = 'Integrated Report – Call for Data',
              path = "C:/Users/tpritch/Documents/Test CFD files/CoS_ContinuousWQ_01012018-02062020_CopyforTravis.xlsx")
 
 # File select- This will bring up a window to select which file you want to process
-CFD_sumstats(project = '2022 IR Call for Data', type = "file_select")
+CFD_sumstats(project = 'Integrated Report – Call for Data', type = "file_select")
 
 # Whole directory- When you want to process a whole folder. Will bring up a section window.
-CFD_sumstats(project = '2022 IR Call for Data', type = "directory")
+CFD_sumstats(project = 'Integrated Report – Call for Data', type = "directory")
 
 #################################################################################
 # If City of Salem, who didn't use the project tab, use is_salem = TRUE. Example:
@@ -35,7 +35,7 @@ CFD_sumstats(project = '2022 IR Call for Data', type = "file_select", is_salem =
 a <- Sys.time()
 NWIS_cont_data_pull(start.date = '2016-01-01',
                     end.date = "2020-12-31",
-                    save_location = '//deqlab1/Assessment/Integrated_Report/DataSources/2022/USGS_NWIS/',
+                    save_location = 'C:/Users/tpritch/Documents/NWIS data/',
                     project = 'Integrated Report – Call for Data',
                     check_dups = FALSE)
 Sys.time() - a
