@@ -22,11 +22,11 @@ CFD_sumstats <- function(project, type = "file", path = NULL, is_salem = FALSE){
 
 # Testing -----------------------------------------------------------------
 #
-  project = '2022 IR Call for Data'
-  type = "directory"
-    # path = "C:/Users/tpritch/Documents/Test CFD files/CityOfGresham_GreshContTemp_01012020-12312020.xlsx"
-
-
+  # project = '2022 IR Call for Data'
+  # type = "file"
+  # path = "C:/Users/tpritch/Documents/Test CFD files/ooi/WorkingCopy-ContinuousSubmission_EA_Data.xlsx"
+  #
+  # is_salem = FALSE
 
 # Error checking --------------------------------------------------------------------------------------------------
 
