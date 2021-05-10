@@ -22,15 +22,25 @@ copbes_AWQMS <- function(data_inventory,
 # Testing ---------------------------------------------------------------------------------------------------------
 
 
-#
-#
 
-  # BES_inventory_import <- read.csv("C:/Users/tpritch/Documents/odeqIRextdata/PortlandBes_data_inventory.csv")
+
+
+BES_inventory_import <- read.csv("C:/Users/tpritch/Documents/odeqIRextdata/PortlandBes_data_inventory.csv")
+
+
+BES_inventory <- BES_inventory_import %>%
+  transmute(station = LocationIdentifier,
+            startdate = '2016-01-01',
+            enddate = '2020-12-31',
+            char = gsub("@.*$","",Identifier)) %>%
+  filter(char %in% c('Dissolved oxygen.Primary',
+                     'pH.Primary',
+                     'Specific conductance.Primary',
+                     'Temperature.Primary', 'Temperature.7DADM'))
+
+data_inventory <- BES_inventory
   #
-  #
-# data_inventory <- BES_inventory
-#   #
-# project = "call for data 2022"
+project = "call for data 2022"
 
 
 # Error checking ---------------------------------------------------------------------------------------------------------
@@ -42,7 +52,12 @@ copbes_AWQMS <- function(data_inventory,
   }
 
 
+
+
+
+
 # fetch data ------------------------------------------------------------------------------------------------------
+
 
 
 
@@ -78,6 +93,15 @@ if(nrow(data_fetch_hq) < 1){
 
 
 # Deployments -------------------------------------------------------------
+
+  BES_mloc_lu_select <- BES_mloc_lu %>%
+    select(MLocID, LocationIdentifier)
+
+  data_fetch_hq <- data_fetch_hq %>%
+    left_join(BES_mloc_lu_select, by = c('Monitoring_Location_ID' = "LocationIdentifier")) %>%
+    mutate(Monitoring_Location_ID = MLocID) %>%
+    select(-MLocID)
+
 
 deployments <-   data_fetch_hq %>%
   dplyr::group_by(Monitoring_Location_ID) %>%
@@ -606,6 +630,23 @@ data_fetch_pH <- data_fetch_hq %>%
                    "Result_Status_ID" = Approval.Level)
 
 
+pH_deployments <- data_fetch_hq %>%
+  dplyr::filter(Characteristic.Name == 'pH.Primary') %>%
+  dplyr::group_by(Monitoring_Location_ID, Equipment_ID) %>%
+  dplyr::summarise(Activity_start_date_time = min(datetime),
+                   Activity_end_date_time  = max(datetime + lubridate::seconds(1)),
+                   Activity_start_end_time_Zone = lubridate::tz(datetime)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(Media = "Water",
+                Media_subdivision = "Surface Water",
+                Project_ID = project,
+                Alternate_Project_ID = "",
+                Alternate_Project_ID2 = "",
+                Frequency_on_minutes = "",
+                Depth_in_m = "")
+
+
+
 
 
 #openxlsx::write.xlsx(data_fetch_pH, file = paste0(save_location, "cont_pH-", station, ".xlsx" ))
@@ -618,7 +659,8 @@ data_fetch_pH <- data_fetch_hq %>%
 
 con_data_list <-list(  deployments=as.data.frame(deployments),
                        sumstats=as.data.frame(AWQMS_sum_stats),
-                       pH_continuous =as.data.frame(data_fetch_pH))
+                       pH_continuous =as.data.frame(data_fetch_pH),
+                       pH_deployments = as.data.frame(pH_deployments))
 
 return(con_data_list)
 
