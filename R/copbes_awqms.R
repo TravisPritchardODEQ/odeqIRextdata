@@ -24,23 +24,23 @@ copbes_AWQMS <- function(data_inventory,
 
 
 
-
-BES_inventory_import <- read.csv("C:/Users/tpritch/Documents/odeqIRextdata/PortlandBes_data_inventory.csv")
-
-
-BES_inventory <- BES_inventory_import %>%
-  transmute(station = LocationIdentifier,
-            startdate = '2016-01-01',
-            enddate = '2020-12-31',
-            char = gsub("@.*$","",Identifier)) %>%
-  filter(char %in% c('Dissolved oxygen.Primary',
-                     'pH.Primary',
-                     'Specific conductance.Primary',
-                     'Temperature.Primary', 'Temperature.7DADM'))
-
-data_inventory <- BES_inventory
-  #
-project = "call for data 2022"
+#
+# BES_inventory_import <- read.csv("C:/Users/tpritch/Documents/odeqIRextdata/PortlandBes_data_inventory.csv")
+#
+#
+# BES_inventory <- BES_inventory_import %>%
+#   transmute(station = LocationIdentifier,
+#             startdate = '2016-01-01',
+#             enddate = '2020-12-31',
+#             char = gsub("@.*$","",Identifier)) %>%
+#   filter(char %in% c('Dissolved oxygen.Primary',
+#                      'pH.Primary',
+#                      'Specific conductance.Primary',
+#                      'Temperature.Primary', 'Temperature.7DADM'))
+#
+# data_inventory <- BES_inventory
+#   #
+# project = "call for data 2022"
 
 
 # Error checking ---------------------------------------------------------------------------------------------------------
