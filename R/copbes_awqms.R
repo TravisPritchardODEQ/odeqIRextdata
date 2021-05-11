@@ -545,7 +545,7 @@ DO_AWQMS <- sumstat_long %>%
          AnaEndTimeZone = lubridate::tz(date),
          Result = round(Result, digits = 2),
          Result.Unit = "mg/l",
-         Equipment = Equipment_ID,
+         Equipment = "Continuous Probe",
          ActivityID = NA,
          ResultStatusID = as.character(ResultStatusID)
   ) %>%
