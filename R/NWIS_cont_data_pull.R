@@ -513,4 +513,15 @@ write.csv(suspected_updates, paste0(save_location,"NWIS_suspected_updates-", sta
     }
 }
 
+
+  con_data_list <-list(  sumstats=as.data.frame(NWIS_sum_stats_data),
+                         pH_continuous =as.data.frame(nwis_ph_results),
+                         pH_deployments = as.data.frame(pH_deployments),
+                         monitoring_locations = as.data.frame(nwis.sites.AWQMS))
+
+
+  return(con_data_list)
+
+
+
 }
