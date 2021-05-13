@@ -33,7 +33,7 @@ NWIS_cont_data_pull <- function(start.date, end.date, save_location, project, st
 # project = "2022 IR Call for Data"
 # stateCD = "or"
 # split_file = TRUE
-# check_dups = FALSE
+#
 
 
 
@@ -338,11 +338,7 @@ print("Query NWIS Temperature begin....")
 
   nwis_ph_results <- nwis.cont.ph %>%
     #filter out rejected
-    dplyr::filter(pH_Inst_cd != 'P Eqp',
-                  pH_Inst_cd != 'P Dis',
-                  pH_Inst_cd != 'P Ssn',
-                  pH_Inst_cd != 'A e',
-                  pH_Inst_cd != 'P e') %>%
+    dplyr::filter(pH_Inst_cd == "A") %>%
     dplyr::transmute('Monitoring_Location_ID' = site_no,
                      "Activity_start_date" = format(dateTime, "%Y/%m/%d"),
                      'Activity_Start_Time' =format(dateTime, "%H:%M:%S"),
@@ -407,7 +403,7 @@ print("Query NWIS Temperature begin....")
       unique(c(
         unique(nwis.sum.stats.DO.AWQMS$SiteID),
         unique(nwis.sum.stats.temp.AWQMS$SiteID),
-        unique(nwis_ph_results$Monitoring_Location_ID)
+        unique(nwis_ph_results$SiteID)
       ))
 
   } else if (nrow(nwis.sum.stats.DO) > 0 &
@@ -515,15 +511,6 @@ write.csv(suspected_updates, paste0(save_location,"NWIS_suspected_updates-", sta
     } else {
       write.csv(NWIS_sum_stats_data, paste0(save_location,"NWIS_sum_stats-", start.date, " - ", end.date, ".csv"), row.names = FALSE)
     }
-  }
-
-
-  con_data_list <-list(  sumstats=as.data.frame(NWIS_sum_stats_data),
-                         pH_continuous =as.data.frame(nwis_ph_results),
-                         pH_deployments = as.data.frame(pH_deployments),
-                         monitoring_locations = as.data.frame(nwis.sites.AWQMS))
-
-
-  return(con_data_list)
+}
 
 }
