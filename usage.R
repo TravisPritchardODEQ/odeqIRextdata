@@ -34,12 +34,14 @@ CFD_sumstats(project = '2022 IR Call for Data', type = "file_select", is_salem =
 # NWIS ------------------------------------------------------------------------------------------------------------
 
 a <- Sys.time()
-NWIS_cont_data_pull(start.date = '2016-01-01',
+NWIS_data <- NWIS_cont_data_pull(start.date = '2016-01-01',
                     end.date = "2020-12-31",
                     save_location = 'C:/Users/tpritch/Documents/NWIS data/',
                     project = 'Integrated Report – Call for Data',
                     check_dups = FALSE)
 Sys.time() - a
+
+save(NWIS_data, file = 'C:/Users/tpritch/Documents/NWIS data/NIWS_data.RData')
 
 # Portland BES data -------------------------------------------------------
 
@@ -81,5 +83,6 @@ data_split_AWQMS(sumstats, split_on = "Monitoring_Location_ID", size = 100000,
 data_split_AWQMS(pH_cont, split_on = "Monitoring_Location_ID", size = 100000,
                  filepath = '//deqlab1/Assessment/Integrated_Report/DataSources/2022/City of portland- continuous/')
 
-write.csv(pH_deployments, file = '//deqlab1/Assessment/Integrated_Report/DataSources/2022/City of portland- continuous/pH_deployments.csv')
+write.csv(pH_deployments, file = '//deqlab1/Assessment/Integrated_Report/DataSources/2022/City of portland- continuous/pH_deployments.csv',
+          row.names = FALSE)
 

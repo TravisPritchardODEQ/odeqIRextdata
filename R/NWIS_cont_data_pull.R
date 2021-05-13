@@ -26,14 +26,14 @@ NWIS_cont_data_pull <- function(start.date, end.date, save_location, project, st
 
 
 # Testing ---------------------------------------------------------------------------------------------------------
-# #
-  # start.date <- "2018-07-01"
-  # end.date <- "2019-07-15"
-  # save_location <- 'C:/Users/tpritch/Documents/Test CFD files/'
-  # project = "2022 IR Call for Data"
-  # stateCD = "or"
-  # split_file = TRUE
-  #
+#
+# start.date <- "2016-01-01"
+# end.date <- "2020-12-31"
+# save_location <- 'C:/Users/tpritch/Documents/Test CFD files/'
+# project = "2022 IR Call for Data"
+# stateCD = "or"
+# split_file = TRUE
+# check_dups = FALSE
 
 
 
@@ -356,18 +356,19 @@ print("Query NWIS Temperature begin....")
 
 
 #Equipment
-  all_data_equipment <- bind_rows(nwis.cont.ph, nwis.sum.stats.DO, nwis.sum.stats.temp) %>%
-    group_by(site_no) %>%
-    summarise(min_date = min(Date, na.rm = TRUE),
-              max_date = max(Date, na.rm = TRUE)) %>%
+  all_data_equipment <- nwis_ph_results %>%
+    mutate(Activity_start_date = ymd(Activity_start_date)) %>%
+    group_by(Monitoring_Location_ID) %>%
+    summarise(min_date = min(Activity_start_date, na.rm = TRUE),
+              max_date = max(Activity_start_date, na.rm = TRUE)) %>%
     ungroup() %>%
-    mutate(Equipment_ID = paste0(site_no, "-", format(min_date, "%Y%m"), "-", format(max_date, "%Y%m"))) %>%
-    select(site_no, Equipment_ID )
+    mutate(Equipment_ID = paste0(Monitoring_Location_ID, "-", format(min_date, "%Y%m"), "-", format(max_date, "%Y%m"))) %>%
+    select(Monitoring_Location_ID, Equipment_ID )
 
  #class(all_data_equipment$site_no) <- c("NULL", "number")
 
   pH_deployments <-   nwis_ph_results %>%
-    dplyr::left_join(all_data_equipment, by = c('Monitoring_Location_ID' = 'site_no' )) %>%
+    dplyr::left_join(all_data_equipment, by = 'Monitoring_Location_ID') %>%
     dplyr::group_by(Monitoring_Location_ID, Equipment_ID) %>%
     dplyr::summarise(Activity_start_date_time = min(Activity_start_date),
                      Activity_end_date_time  = max(Activity_start_date),
@@ -382,8 +383,14 @@ print("Query NWIS Temperature begin....")
                   Depth_in_m = "")
 
 
+  nwis_ph_results_equip <- nwis_ph_results %>%
+    left_join(all_data_equipment, by = c('Monitoring_Location_ID')) %>%
+    select(Monitoring_Location_ID, Activity_start_date, Activity_Start_Time, Activity_Time_Zone, Equipment_ID,
+           Characteristic_Name, Result_Value, Result_Unit, Result_Status_ID)
 
-  print("Writing pH files")
+  nwis_ph_results <- nwis_ph_results_equip
+
+    print("Writing pH files")
 
 
   openxlsx::write.xlsx(pH_deployments, file = paste0(save_location, "NWIS_continuous_pH_Deployments.xlsx"))
@@ -400,7 +407,7 @@ print("Query NWIS Temperature begin....")
       unique(c(
         unique(nwis.sum.stats.DO.AWQMS$SiteID),
         unique(nwis.sum.stats.temp.AWQMS$SiteID),
-        unique(nwis_ph_results$SiteID)
+        unique(nwis_ph_results$Monitoring_Location_ID)
       ))
 
   } else if (nrow(nwis.sum.stats.DO) > 0 &
@@ -508,6 +515,15 @@ write.csv(suspected_updates, paste0(save_location,"NWIS_suspected_updates-", sta
     } else {
       write.csv(NWIS_sum_stats_data, paste0(save_location,"NWIS_sum_stats-", start.date, " - ", end.date, ".csv"), row.names = FALSE)
     }
-}
+  }
+
+
+  con_data_list <-list(  sumstats=as.data.frame(NWIS_sum_stats_data),
+                         pH_continuous =as.data.frame(nwis_ph_results),
+                         pH_deployments = as.data.frame(pH_deployments),
+                         monitoring_locations = as.data.frame(nwis.sites.AWQMS))
+
+
+  return(con_data_list)
 
 }
