@@ -371,7 +371,7 @@ print("Query NWIS Temperature begin....")
                      Activity_start_end_time_Zone = dplyr::first(Activity_Time_Zone)) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(Media = "Water",
-                  Media_subdivision = "",
+                  Media_subdivision = "Surface Water",
                   Project_ID = project,
                   Alternate_Project_ID = "",
                   Alternate_Project_ID2 = "",
