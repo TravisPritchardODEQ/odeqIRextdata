@@ -10,7 +10,8 @@ NWIS_cont_data_pull(
   save_location,
   project,
   stateCD = "or",
-  split_file = TRUE
+  split_file = TRUE,
+  check_dups = FALSE
 )
 }
 \arguments{

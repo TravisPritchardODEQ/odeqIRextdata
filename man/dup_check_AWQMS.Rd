@@ -39,5 +39,5 @@ dup_check_AWQMS(
 This function checks AWQMS for suspected duplicates when generating AWQMS import files. Function will query data
 from AWQMS, join to provided datatable, and create a list of 3 objects: non_duplicates, suspected_dups,
 suspected_updates. Suspected updates are matches in AWQMS, but with different results, suggesting there has been an
-update somewhere (original dataset, data processing, etc..)
+update somewhere (original dataset, data processing, etc..). This function will not currently work with continuous data.
 }

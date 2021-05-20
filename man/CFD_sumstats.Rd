@@ -4,7 +4,7 @@
 \alias{CFD_sumstats}
 \title{CFD_sumstats}
 \usage{
-CFD_sumstats(project, type = "file", path = NULL)
+CFD_sumstats(project, type = "file", path = NULL, is_salem = FALSE)
 }
 \arguments{
 \item{project}{Name of project for AWQMS}
