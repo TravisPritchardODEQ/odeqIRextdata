@@ -22,8 +22,8 @@ copbes_AWQMS <- function(data_inventory,
 # Testing ---------------------------------------------------------------------------------------------------------
 
 
-
-
+#
+#
 #
 # BES_inventory_import <- read.csv("C:/Users/tpritch/Documents/odeqIRextdata/PortlandBes_data_inventory.csv")
 #
@@ -73,9 +73,15 @@ data_fetch <- purrr::pmap_dfr(data_inventory, copbes_data)
    # 50  = Suspect
    # 100 = Good
 
+ #Approval Level Codes
+    # 900 = working
+    # 950 = In Review
+    # 1200 = Approved
+
 data_fetch_hq <- data_fetch %>%
   dplyr::filter(!is.na(Result.Value)) %>%
-  dplyr::filter(Grade.Code == 100)
+  dplyr::filter(Grade.Code == 100,
+                Approval.Level == 1200)
 
 if(nrow(data_fetch_hq) < 1){
 
@@ -136,7 +142,7 @@ data_fetch_temp <- data_fetch_hq %>%
                    Result.Unit = Result.Unit,
                    Result.Analytical.Method.ID = "T-170.1",
                    RsltType = "Calculated",
-                   ResultStatusID = as.character(Approval.Level),
+                   ResultStatusID = as.character(Grade.Code),
                    StatisticalBasis = '7DMADMax',
                    RsltTimeBasis = ifelse(StatisticalBasis == "7DMADMax", "7 day", "1 Day" ),
                    cmnt = Comment,
@@ -326,7 +332,7 @@ if(nrow(dplyr::filter(data_fetch_hq, Monitoring_Location_ID %in% temp_raw_statio
                   ActStartDate = format(date, format="%Y-%m-%d"),
                   ActStartTime = "0:00",
                   ActEndDate = AnaEndDate,
-                  ActEndTime = AnaEndTime,
+                  ActEndTime = "0:00",
                   RsltType = "Calculated",
                   ActStartTimeZone = lubridate::tz(date),
                   ActEndTimeZone = lubridate::tz(date),
@@ -537,7 +543,7 @@ DO_AWQMS <- sumstat_long %>%
          ActStartDate = format(date, format="%Y-%m-%d"),
          ActStartTime = "0:00",
          ActEndDate = AnaEndDate,
-         ActEndTime = AnaEndTime,
+         ActEndTime = "0:00",
          RsltType = "Calculated",
          ActStartTimeZone = lubridate::tz(date),
          ActEndTimeZone = lubridate::tz(date),
@@ -622,12 +628,12 @@ data_fetch_pH <- data_fetch_hq %>%
   dplyr::transmute('Monitoring_Location_ID' = Monitoring_Location_ID,
                    "Activity_start_date" = format(datetime, "%Y/%m/%d"),
                    'Activity_Start_Time' =format(datetime, "%H:%M:%S"),
-                   'Activity_Time_Zone' = "",
+                   'Activity_Time_Zone' = lubridate::tz(datetime),
                    'Equipment_ID' = Equipment_ID,
                    'Characteristic_Name' = 'pH',
                    "Result_Value" = Result.Value,
                    "Result_Unit" = Result.Unit,
-                   "Result_Status_ID" = Approval.Level)
+                   "Result_Status_ID" = Grade.Code)
 
 
 pH_deployments <- data_fetch_hq %>%

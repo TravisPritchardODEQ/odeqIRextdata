@@ -58,7 +58,6 @@ BES_inventory <- BES_inventory_import %>%
             char = gsub("@.*$","",Identifier)) %>%
   filter(char %in% c('Dissolved oxygen.Primary',
                      'pH.Primary',
-                     'Specific conductance.Primary',
                      'Temperature.Primary', 'Temperature.7DADM'))
 
 BES_stations <- BES_inventory_import %>%

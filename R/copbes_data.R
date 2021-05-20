@@ -22,12 +22,14 @@
 #' @return data frame of data
 
 copbes_data <- function(station, startdate, enddate, char) {
+#
+#   # Testing
+#   station=c("FC-8", "VNB","P1936")
+#   startdate="2019-04-01"
+#   enddate="2019-12-31"
+#   char=c("Temperature.Primary")
 
-  # Testing
-  # station=c("92B", "VNB","P1936")
-  # startdate="2019-04-01"
-  # enddate="2019-12-31"
-  # char=c("Temperature.Primary", "Dissolved oxygen.Field Visits")
+  print(paste(station, sep = ","))
 
   baseurl <- "https://aquarius.portlandoregon.gov/Export/DataSet?"
 
