@@ -6,10 +6,10 @@
 #' @param station noaa air temperature station
 #' @param startdate start date
 #' @param enddate end date
-#' @param data_type Data to return. Default is TMAX
+#' @param data_type Data to return. Input is a character value. Differentt types are to be sperated by commas. Default is TMAX
 
 
-noaa_air_tmax <- function(station, startdate, enddate, data_type = "TMAX"){
+noaa_air <- function(station, startdate, enddate, data_type = "TMAX"){
 
   base_url <- 'https://www.ncei.noaa.gov/access/services/data/v1?dataset=daily-summaries&units=standard&includeStationName=true&includeStationLocation=true&includeAttributes=true&format=json'
 

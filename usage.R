@@ -511,7 +511,7 @@ air_temp_stations <-c(
 
 
 OR_air_temp <- air_temp_stations %>%
-  map(noaa_air_tmax, '2011-01-01', '2020-12-31') %>%
+  map(noaa_air, '2010-12-26', '2020-12-31') %>%
   bind_rows()
 
-save(OR_air_temp, file = '//deqlab1/Assessment/Integrated_Report/DataSources/NOAA air temp/NOAA_air_temp.RDATA')
+save(OR_air_temp, file = '//deqlab1/Assessment/Integrated_Report/DataSources/2022/NOAA air temp/NOAA_air_temp.RDATA')
