@@ -13,7 +13,7 @@ noaa_air(station, startdate, enddate, data_type = "TMAX")
 
 \item{enddate}{end date}
 
-\item{data_type}{Data to return. Input is a character value. Differentt types are to be sperated by commas. Default is TMAX}
+\item{data_type}{Data to return. Input is a character value. Different types are to be seperated by commas. Default is TMAX}
 }
 \description{
 Data is retrieved NOAA's NCEI Data service.

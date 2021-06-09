@@ -6,7 +6,8 @@
 #' @param station noaa air temperature station
 #' @param startdate start date
 #' @param enddate end date
-#' @param data_type Data to return. Input is a character value. Differentt types are to be sperated by commas. Default is TMAX
+#' @param data_type Data to return. Input is a character value. Different types are to be seperated by commas. Default is TMAX
+#' @export
 
 
 noaa_air <- function(station, startdate, enddate, data_type = "TMAX"){
