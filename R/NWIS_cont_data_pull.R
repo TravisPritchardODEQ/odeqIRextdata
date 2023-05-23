@@ -27,13 +27,13 @@ NWIS_cont_data_pull <- function(start.date, end.date, save_location, project, st
 
 # Testing ---------------------------------------------------------------------------------------------------------
 #
-start.date <- "2016-01-01"
-end.date <- "2016-12-31"
-save_location <- 'C:/Users/tpritch/Documents/Test CFD files/'
-project = "2022 IR Call for Data"
-stateCD = "or"
-split_file = TRUE
-#
+# start.date <- "2016-01-01"
+# end.date <- "2016-12-31"
+# save_location <- 'C:/Users/tpritch/Documents/Test CFD files/'
+# project = "2022 IR Call for Data"
+# stateCD = "or"
+# split_file = TRUE
+# #
 
 
 
