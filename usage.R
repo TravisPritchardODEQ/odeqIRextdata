@@ -179,6 +179,8 @@ data_split_AWQMS(OWRD_temp_sumstats, split_on = "SiteID", size = 100000,
 
 # Air temperature -------------------------------------------------------------------------------------------------
 
+library(odeqIRextdata)
+
 #These are the air stations we used in 2018/2020
 
 air_temp_stations <-c(
