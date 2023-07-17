@@ -134,6 +134,12 @@ PDX_BES_data <- function(startdate, enddate, userID, password, save_location){
   #filter to only high quality data
   data_fetch_hq <- BES_data %>%
     dplyr::mutate(locationIdentifier = paste0('PDX_BES-',locationIdentifier )) |>  #match existing format
+    dplyr::mutate(locationIdentifier = case_when(locationIdentifier == 'PDX_BES-FC-8' ~ 'PDX_BES-FC8',
+                                                 locationIdentifier == 'PDX_BES-JC1' ~ 'PDX_BES-JC-1',
+                                                 locationIdentifier == 'PDX_BES-TC-4' ~ 'PDX_BES-TC4',
+                                                 locationIdentifier == 'PDX_BES-TC-5' ~ 'PDX_BES-TC5',
+                                                 locationIdentifier == 'PDX_BES-TC-6' ~ 'DX_BES-TC6',
+                                                 TRUE ~ locationIdentifier)) |>
     dplyr::filter(gradeCode == 100) |>
     dplyr::mutate(datetime = lubridate::ymd_hms(timestamp, tz ="America/Los_Angeles" )) |>
     dplyr::filter(datetime >= startdate-30,
