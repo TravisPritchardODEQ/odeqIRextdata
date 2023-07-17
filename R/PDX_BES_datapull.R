@@ -138,7 +138,7 @@ PDX_BES_data <- function(startdate, enddate, userID, password, save_location){
                                                  locationIdentifier == 'PDX_BES-JC1' ~ 'PDX_BES-JC-1',
                                                  locationIdentifier == 'PDX_BES-TC-4' ~ 'PDX_BES-TC4',
                                                  locationIdentifier == 'PDX_BES-TC-5' ~ 'PDX_BES-TC5',
-                                                 locationIdentifier == 'PDX_BES-TC-6' ~ 'DX_BES-TC6',
+                                                 locationIdentifier == 'PDX_BES-TC-6' ~ 'PDX_BES-TC6',
                                                  TRUE ~ locationIdentifier)) |>
     dplyr::filter(gradeCode == 100) |>
     dplyr::mutate(datetime = lubridate::ymd_hms(timestamp, tz ="America/Los_Angeles" )) |>
