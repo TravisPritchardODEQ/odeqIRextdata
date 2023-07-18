@@ -297,7 +297,7 @@ PDX_BES_data <- function(startdate, enddate, userID, password, save_location){
                     AnaEndTimeZone = "",
                     Result = round(Result, digits = 2),
                     Result.Unit = "mg/l",
-                    Equipment = locationIdentifier,
+                    Equipment = 'Continuous Probe',
                     ActivityID = paste0(locationIdentifier, ":", gsub("-","",ActStartDate), ":", ActivityType),
                     ResultStatusID = as.character(ResultStatusID),
                     Monitorining.Location.ID = locationIdentifier
