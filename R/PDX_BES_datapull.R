@@ -348,7 +348,7 @@ PDX_BES_data <- function(startdate, enddate, userID, password, save_location){
       dplyr::transmute(charID = "Temperature, water",
                        Result = value,
                        Result.Unit = unit,
-                       Result.Analytical.Method.ID = "THM01",
+                       Result.Analytical.Method.ID = "FO SOP 1.05a",
                        RsltType = "Calculated",
                        ResultStatusID = as.character(approvalLevel),
                        StatisticalBasis = '7DMADMax',
