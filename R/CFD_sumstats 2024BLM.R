@@ -8,6 +8,7 @@
 #' @import openxlsx
 #' @import zoo
 #' @import purrr
+#' @import stringr
 #' @param project Name of project for AWQMS
 #' @param type How to select files. "file" lets you specify path in function arguments, 'file_select' brings up a chooser window, "directory" will loop through all files in a directory.
 #' @param path filepath for file to process, if type == "path"
