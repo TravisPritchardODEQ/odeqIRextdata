@@ -17,7 +17,7 @@ options(scipen=999)
 in_fnames <- list.files(path, full.names = TRUE)
 in_fnames <- in_fnames[grep("wq", in_fnames)]
 in_fnames <- in_fnames[grep("csv", in_fnames)]
-
+#in_fnames <- in_fnames[1:2]
 
 if(length(in_fnames) == 0){
   stop("No wq files found.")
@@ -378,18 +378,32 @@ for(h in 1:length(in_fnames)){
   cont_Ph <- data_long %>%
     filter(parameter == "pH")
 
+AWQMS_equipment <- data.frame(
+           stringsAsFactors = FALSE,
+                check.names = FALSE,
+                                  Equipment_ID = c("soschwq_010116-123119",
+                                                   "sosecwq_010116-123119",
+                                                   "sosvawq_010116-123119",
+                                                   "soswiwq_010116-123119"),
+                     StationCode = c("soschwq","sosecwq","sosvawq",
+                                                   "soswiwq")
+                   )
+
 
 
   cont_pH_AWQMS <- cont_Ph %>%
+    dplyr::mutate(StationCode = str_replace_all(StationCode, " ", "")) |>
+    dplyr::select(-Equipment_ID) |>
+    dplyr::left_join(AWQMS_equipment) |>
     dplyr::transmute('Monitoring_Location_ID' = StationCode ,
                      "Activity_start_date" = format(DateTimeStamp, "%Y/%m/%d"),
                      'Activity_Start_Time' =format(DateTimeStamp, "%H:%M:%S"),
                      'Activity_Time_Zone' = 'PST',
-                     'Equipment_ID' = StationCode ,
+                     'Equipment_ID' = Equipment_ID ,
                      'Characteristic_Name' = parameter ,
                      "Result_Value" = result,
                      "Result_Unit" = 'pH units',
-                     "Result_Status_ID" = qual)
+                     "Result_Status_ID" = 'Final')
 
 
   if(nrow(cont_pH_AWQMS) > 0){
@@ -402,7 +416,7 @@ for(h in 1:length(in_fnames)){
   deployments <- cont_pH_AWQMS %>%
     mutate(time_char = Activity_Start_Time,
            datetime = lubridate::ymd_hms(paste(as.Date(Activity_start_date), time_char))) %>%
-    group_by(Monitoring_Location_ID, Equipment_ID ) %>%
+    group_by(Monitoring_Location_ID,Equipment_ID ) %>%
     summarise(startdate = min(datetime),
               enddate = "",
               TZ = first(Activity_Time_Zone))
