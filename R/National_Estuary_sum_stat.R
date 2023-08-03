@@ -10,14 +10,14 @@ NERRS_sum_stats <- function(path){
 
 
 options(scipen=999)
-
+  deployment_list <- list()
 
 #testing
 #path <- 'C:/Users/tpritch/Oregon/DEQ - Integrated Report - IR 2024/DataAssembly/NERRS/Orginal Files/'
 in_fnames <- list.files(path, full.names = TRUE)
 in_fnames <- in_fnames[grep("wq", in_fnames)]
 in_fnames <- in_fnames[grep("csv", in_fnames)]
-
+in_fnames <- in_fnames[1:2]
 
 if(length(in_fnames) == 0){
   stop("No wq files found.")
@@ -32,7 +32,7 @@ for(h in 1:length(in_fnames)){
   filepath = in_fnames[h]
 
   data_import <- read.csv(filepath, stringsAsFactors = FALSE) %>%
-    dplyr::select(StationCode, DateTimeStamp, Temp, F_Temp, DO_Pct, F_DO_Pct, DO_mgl, F_DO_mgl ) %>%
+    dplyr::select(StationCode, DateTimeStamp, Temp, F_Temp, DO_Pct, F_DO_Pct, DO_mgl, F_DO_mgl, pH, F_pH) %>%
     dplyr::mutate(DateTimeStamp = lubridate::mdy_hm(DateTimeStamp))
 
   #tz(data_import$DateTimeStamp) <- "America/Los_Angeles"
@@ -40,12 +40,14 @@ for(h in 1:length(in_fnames)){
 
 
   data_long <- data_import %>%
-    tidyr::gather(key = 'parameter', value = 'result', -StationCode, -DateTimeStamp, -F_Temp, -F_DO_Pct, -F_DO_mgl ) %>%
-    dplyr::mutate(qual = ifelse(parameter == "Temp", F_Temp,
-                         ifelse(parameter == "DO_mgl", F_DO_mgl,
-                                ifelse(parameter == "DO_Pct", F_DO_Pct, "ERROR" ))),
-           date = as.Date(DateTimeStamp)) %>%
-    dplyr::select(-F_Temp, -F_DO_mgl, -F_DO_Pct) %>%
+    tidyr::gather(key = 'parameter', value = 'result', -StationCode, -DateTimeStamp, -F_Temp, -F_DO_Pct, -F_DO_mgl, -F_pH ) %>%
+    dplyr::mutate(qual = dplyr::case_when(parameter == "Temp"~ F_Temp,
+                                          parameter == "DO_mgl" ~ F_DO_mgl,
+                                          parameter == "DO_Pct" ~ F_DO_Pct,
+                                          parameter == "pH" ~ F_pH,
+                                          TRUE ~ "ERROR" ),
+                  date = as.Date(DateTimeStamp)) %>%
+    dplyr::select(-F_Temp, -F_DO_mgl, -F_DO_Pct, -F_pH) %>%
     # Filter out suspect and other bad data, keep only 0,2,3,4,and 5 labeled data
     dplyr::filter(grepl("<0>|<2>|<3>|<4>|<5>", qual)) |>
     dplyr::mutate(Equipment_ID = StationCode)
@@ -66,7 +68,8 @@ for(h in 1:length(in_fnames)){
 
 
   # get unique list of characteristics to run for loop through
-  unique_characteritics <- unique(data_long$parameter)
+  unique_characteritics <- unique(data_long$parameter) |>
+    str_subset("pH", negate=TRUE)
 
 
   #create list for getting data out of loop
@@ -370,5 +373,52 @@ for(h in 1:length(in_fnames)){
 
   openxlsx::write.xlsx(AQWMS_sum_stat, paste0(tools::file_path_sans_ext(filepath),"-statsum_4_AWQMS.xlsx"))
 
+
+  # Cont. pH --------------------------------------------------------------------------------------------------------
+  cont_Ph <- data_long %>%
+    filter(parameter == "pH")
+
+
+
+  cont_pH_AWQMS <- cont_Ph %>%
+    dplyr::transmute('Monitoring_Location_ID' = StationCode ,
+                     "Activity_start_date" = format(DateTimeStamp, "%Y/%m/%d"),
+                     'Activity_Start_Time' =format(DateTimeStamp, "%H:%M:%S"),
+                     'Activity_Time_Zone' = 'PST',
+                     'Equipment_ID' = StationCode ,
+                     'Characteristic_Name' = parameter ,
+                     "Result_Value" = result,
+                     "Result_Unit" = 'pH units',
+                     "Result_Status_ID" = qual)
+
+
+  if(nrow(cont_pH_AWQMS) > 0){
+    # Export to same place as the original file
+    openxlsx::write.xlsx(cont_pH_AWQMS, paste0(tools::file_path_sans_ext(filepath),"-cont_pH.xlsx"))
+  }
+
+  # Deployment info ---------------------------------------------------------
+
+  deployments <- cont_pH_AWQMS %>%
+    mutate(time_char = Activity_Start_Time,
+           datetime = lubridate::ymd_hms(paste(as.Date(Activity_start_date), time_char))) %>%
+    group_by(Monitoring_Location_ID, Equipment_ID ) %>%
+    summarise(startdate = min(datetime),
+              enddate = "",
+              TZ = first(Activity_Time_Zone))
+
+  #write.csv(deployments, paste0(tools::file_path_sans_ext(filepath),"-deployments.csv"), row.names = FALSE)
+
+deployment_list[[h]] <- deployments
+
 }
+
+deplyments_all <- dplyr::bind_rows(deployment_list) |>
+  group_by(Monitoring_Location_ID) |>
+  arrange(startdate,.by_group = TRUE) |>
+  filter(row_number()==1)
+
+write.csv(deplyments_all, paste0(tools::file_path_sans_ext(path),"deployments.csv"), row.names = FALSE)
+
+
 }
