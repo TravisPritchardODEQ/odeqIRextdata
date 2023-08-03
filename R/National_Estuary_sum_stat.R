@@ -17,7 +17,7 @@ options(scipen=999)
 in_fnames <- list.files(path, full.names = TRUE)
 in_fnames <- in_fnames[grep("wq", in_fnames)]
 in_fnames <- in_fnames[grep("csv", in_fnames)]
-in_fnames <- in_fnames[1:2]
+
 
 if(length(in_fnames) == 0){
   stop("No wq files found.")
