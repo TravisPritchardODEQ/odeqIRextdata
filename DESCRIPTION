@@ -1,6 +1,6 @@
 Package: odeqIRextdata
 Title: R package for creating AWQMS import files from external publically available databases and call for data submissions.
-Version: 0.0.0.9000
+Version: 0.1.0
 Authors@R: 
     person(given = "Travis",
            family = "Pritchard",
