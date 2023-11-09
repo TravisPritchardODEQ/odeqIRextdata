@@ -26,7 +26,7 @@ CFD_sumstats_2024_BLM <- function(project, path = NULL, is_salem = FALSE){
 #
   # project = 'IR Call for Data'
   # type = "file"
-  # path = "C:/Users/tpritch/Oregon/DEQ - Integrated Report - IR 2024/CallForData/2024/Submitted Data/Archive of Original Files/BLM/excel_versions/BLM_Data_Burns.xlsx"
+  # path = "C:/Users/tpritch/Oregon/DEQ - Integrated Report - IR 2024/CallForData/2024/Submitted Data/Archive of Original Files/BLM/excel_versions/BLM_Data_Lakeview.xlsx"
   # is_salem = FALSE
 
 # Error checking --------------------------------------------------------------------------------------------------
@@ -104,7 +104,7 @@ print("Finished importing Results")
 # convert F to C, filter out rejected data, and create datetime column
 results_data <- Results_import %>%
   mutate(r = ifelse(Result_Unit == "deg F", round((Result_Value - 32)*(5/9),2), Result_Value),
-         r_units = ifelse(Result_Unit == "deg F", "deg C", Result_Unit )) %>%
+         Result_Unit = ifelse(Result_Unit == "deg F", "deg C", Result_Unit )) %>%
   filter(Result_Status_ID != "Rejected") %>%
   mutate(datetime = paste(as.Date(Activity_Start_Date), Activity_Start_Time   )) |>
   mutate(datetime = lubridate::ymd_hm(datetime),
@@ -155,7 +155,7 @@ for (i in 1:length(unique_characteritics)){
 
   # Simplify to hourly values and Stats
   hrsum <- results_data_char %>%
-    group_by(Monitoring_Location_ID, Equipment_ID, hr, r_units, Activity_Time_Zone, Result_Unit, mloc_equip) %>%
+    group_by(Monitoring_Location_ID, Equipment_ID, hr,  Activity_Time_Zone, Result_Unit, mloc_equip) %>%
     summarise(date = mean(Activity_Start_Date),
               hrDTmin = min(datetime),
               hrDTmax = max(datetime),
