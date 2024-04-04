@@ -22,5 +22,7 @@ noaa_air <- function(station, startdate, enddate, data_type = "TMAX"){
 
   df <- jsonlite::fromJSON(txt = fetch_url)
 
+  system('sleep 3')
+
   return(df)
 }
