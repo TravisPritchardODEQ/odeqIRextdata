@@ -40,6 +40,7 @@ NWIS_cont_data_pull <- function(start.date, end.date, save_location, project, st
   options(scipen=999)
 
 
+  print("get oregon sites")
   sites_import <- dataRetrieval::whatNWISsites(stateCD = stateCD,
                          hasDataTypeCd=c("dv","uv"))
 
@@ -324,11 +325,27 @@ print("Query NWIS Temperature begin....")
 
   print("Query NWIS pH begin....")
 
-  # Commenting out due to not using contiuous pH for assessment
-  nwis.cont.ph <- dataRetrieval::readNWISuv(siteNumbers = USGS_stations,
+  # Split pH pull into 2 seperate pulls
+  #
+  # When doing the pH data pull, it would throw a "HTTP 414 URI Too Long." error.
+  # Modify the pH data pull to split monitoring locations into 2 seperate pulls and then combine the data
+
+  station_split <- split(USGS_stations,  c(1,2))
+
+
+
+  nwis.cont.ph_1 <- dataRetrieval::readNWISuv(siteNumbers = station_split[[1]],
                                             parameterCd = "00400",
                                             startDate = start.date,
                                             endDate = end.date)
+
+  # Commenting out due to not using contiuous pH for assessment
+  nwis.cont.ph_2 <- dataRetrieval::readNWISuv(siteNumbers = station_split[[2]],
+                                            parameterCd = "00400",
+                                            startDate = start.date,
+                                            endDate = end.date)
+  nwis.cont.ph <- dplyr::bind_rows(nwis.cont.ph_1, nwis.cont.ph_2)
+
   print("Query NWIS pH end")
 
 
