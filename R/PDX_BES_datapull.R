@@ -137,6 +137,7 @@ PDX_BES_data <- function(startdate, enddate, userID, password, save_location){
 
   #filter to only high quality data
   data_fetch_hq <- BES_data %>%
+    dplyr::filter(approvalLevel %in% c(900,1200)) |> #filter out data in review
     dplyr::mutate(locationIdentifier = paste0('PDX_BES-',locationIdentifier )) |>  #match existing format
     dplyr::mutate(locationIdentifier = case_when(locationIdentifier == 'PDX_BES-FC-8' ~ 'PDX_BES-FC8',
                                                  locationIdentifier == 'PDX_BES-JC1' ~ 'PDX_BES-JC-1',
