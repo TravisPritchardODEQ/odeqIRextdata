@@ -425,7 +425,9 @@ PDX_BES_data <- function(startdate, enddate, userID, password, save_location){
 
 # Put it all together ---------------------------------------------------------------------------------------------
 
-  sum_stats <-  bind_rows(data_fetch_temp, DO_AWQMS)
+  sum_stats <-  bind_rows(data_fetch_temp, DO_AWQMS) |>
+    mutate(ActStartDate = as.Date(format(ActStartDate, "%Y-%m-%d")),
+           ActEndDate = as.Date(format(ActEndDate, "%Y-%m-%d")))
 
   write.csv(sum_stats, file = paste0(save_location,"PDX_BES_sum_stats.csv"), row.names = FALSE)
   write.csv(data_fetch_pH, file = paste0(save_location,"PDX_BES_pH_raw.csv"), row.names = FALSE)

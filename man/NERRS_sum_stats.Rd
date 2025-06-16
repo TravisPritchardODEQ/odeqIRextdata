@@ -4,7 +4,7 @@
 \alias{NERRS_sum_stats}
 \title{Formats files downloaded from NERRS at http://cdmo.baruch.sc.edu/get/landing.cfm into AWQMS import files}
 \usage{
-NERRS_sum_stats()
+NERRS_sum_stats(path)
 }
 \description{
 Download csv files and  save to a folder. The function will open a directory selector. Point the function to the
