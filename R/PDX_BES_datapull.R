@@ -89,7 +89,9 @@ PDX_BES_data <- function(startdate, enddate, userID, password, save_location){
 
   # DEQ custom function to be able to use purrr mapping in datapull
   BES_datapull <- function(dset){
-    GetExportDataSet(Dataset = dset)
+    GetExportDataSet(Dataset = dset,
+                     StartTime = startdate,
+                     EndTime = enddate)
   }
 
 
@@ -107,8 +109,8 @@ PDX_BES_data <- function(startdate, enddate, userID, password, save_location){
 # Get available datasets for temp, DO, and pH ---------------------------------------------------------------------
 
 
-  temp_sets <- GetMapDataDatasetsByParameter("Temperature") |>
-    filter(dataSetLabel == "7DADM")
+    temp_sets <- GetMapDataDatasetsByParameter("Temperature") |>
+      filter(dataSetLabel == "7DADM")
   DO_sets <- GetMapDataDatasetsByParameter("Dissolved%20oxygen")|>
     filter(dataSetLabel == "Primary")
   pH_sets <- GetMapDataDatasetsByParameter("pH")|>
@@ -124,7 +126,9 @@ PDX_BES_data <- function(startdate, enddate, userID, password, save_location){
 
 
   print("Starting datapull")
-  BES_data <- map_dfr(datasets,  BES_datapull, .progress = TRUE)
+  BES_data <- map(datasets,  BES_datapull, .progress = TRUE)
+
+  BES_data <- bind_rows(Filter(\(x) !identical(x$points, list()), BES_data))
 
 
 # Data Processing -------------------------------------------------------------------------------------------------
