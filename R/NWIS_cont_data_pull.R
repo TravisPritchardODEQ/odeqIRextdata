@@ -328,7 +328,7 @@ print("Query NWIS Temperature begin....")
   # Split pH pull into 2 seperate pulls
   #
   # When doing the pH data pull, it would throw a "HTTP 414 URI Too Long." error.
-  # Modify the pH data pull to split monitoring locations into 2 seperate pulls and then combine the data
+  # Modify the pH data pull to split monitoring locations into 2 separate pulls and then combine the data
 
   station_split <- split(USGS_stations,  c(1,2))
 
@@ -375,7 +375,7 @@ print("Query NWIS Temperature begin....")
     summarise(min_date = min(Activity_start_date, na.rm = TRUE),
               max_date = max(Activity_start_date, na.rm = TRUE)) %>%
     ungroup() %>%
-    mutate(Equipment_ID = paste0(Monitoring_Location_ID, "-", format(min_date, "%Y%m"), "-", format(max_date, "%Y%m"))) %>%
+    mutate(Equipment_ID =Monitoring_Location_ID) %>%
     select(Monitoring_Location_ID, Equipment_ID )
 
  #class(all_data_equipment$site_no) <- c("NULL", "number")
@@ -384,7 +384,7 @@ print("Query NWIS Temperature begin....")
     dplyr::left_join(all_data_equipment, by = 'Monitoring_Location_ID') %>%
     dplyr::group_by(Monitoring_Location_ID, Equipment_ID) %>%
     dplyr::summarise(Activity_start_date_time = min(Activity_start_date),
-                     Activity_end_date_time  = max(Activity_start_date),
+                     Activity_end_date_time  = "",
                      Activity_start_end_time_Zone = dplyr::first(Activity_Time_Zone)) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(Media = "Water",

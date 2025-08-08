@@ -397,7 +397,7 @@ PDX_BES_data <- function(startdate, enddate, userID, password, save_location){
       dplyr::transmute('Monitoring_Location_ID' = locationIdentifier,
                        "Activity_start_date" = format(datetime, "%Y/%m/%d"),
                        'Activity_Start_Time' =format(datetime, "%H:%M:%S"),
-                       'Activity_Time_Zone' = "",
+                       'Activity_Time_Zone' = "PST", #When I checked on 6/20/2025
                        'Equipment_ID' = locationIdentifier,
                        'Characteristic_Name' = 'pH',
                        "Result_Value" = value,

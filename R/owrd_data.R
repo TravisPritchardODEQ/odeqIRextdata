@@ -23,7 +23,7 @@
 owrd_data <- function(station, startdate, enddate, char) {
 
   # Testing
-  # station=c("10366000", "13330000")
+  # station=c("10378500", "13330000")
   # startdate="2020-12-01"
   # enddate="2021-02-15"
   # char=c("MDF", "WTEMP_MAX")
@@ -73,7 +73,8 @@ owrd_data <- function(station, startdate, enddate, char) {
                                                                "temperature_measurement_C", "instantaneous_water_temp_C", "daily_mean_water_temp_C",
                                                                "daily_max_water_temp_C", "daily_min_water_temp_C",
                                                                "temperature_measurement_F", "instantaneous_water_temp_F", "daily_mean_water_temp_F",
-                                                               "daily_max_water_temp_F", "daily_min_water_temp_F")), values_to = "Result.Value", names_to = "Characteristic.Name")
+                                                               "daily_max_water_temp_F", "daily_min_water_temp_F",
+                                                               'daily_max_water_temp_CÂ')), values_to = "Result.Value", names_to = "Characteristic.Name")
 
   # fix various data types and add cols when they don't exist
   df4 <- df3 %>%
